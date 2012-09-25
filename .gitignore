@@ -1,0 +1,37 @@
+*.mp4
+*.3gp
+*.mov
+*.swf
+*.wmv
+*.mpg
+*.avi
+
+bin
+gen
+libs
+obj
+*.jar
+*.zip
+*.class
+*.o.d
+*~
+
+# Eclipse
+
+/.cache
+
+# AndroidProguardScala
+/proguard_cache
+/proguard_cache_conf
+/libs/scala_library.min.jar
+*.class.proto_depend
+
+# sbt
+
+/target
+/project
+
+# gwt
+
+war/WEB-INF
+gwt-unitCache/
