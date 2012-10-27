@@ -1,21 +1,12 @@
 package com.restphone.asm
 
 import java.io.FileInputStream
-import java.util.ArrayList
-import org.objectweb.asm.AnnotationVisitor
-import org.objectweb.asm.FieldVisitor
-import org.objectweb.asm.Opcodes
-import scala.collection._
+
+import scala.collection.Set
+import scala.collection.mutable
+
 import org.objectweb.asm.ClassReader
-import java.io.FileInputStream
-import org.scalatest.matchers.ShouldMatchers
-import org.scalatest.Spec
-import org.scalatest.FunSuite
-import scala.collection.mutable.Stack
-//import com.google.common.collect._
-//import com.google.common.collect.Ranges
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
+import org.objectweb.asm.Opcodes
 
 sealed abstract class ClassModifiers
 case object IsInterface extends ClassModifiers
@@ -54,16 +45,16 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor( Opcodes.ASM4 )
 
   case class AccessElements( i : Int ) {
     def toList = {
-      def toListInternal( value : Int, result : List[ ClassModifiers ] ) : List[ ClassModifiers ] = {
+      def toList_impl( value : Int, result : List[ ClassModifiers ] ) : List[ ClassModifiers ] = {
         value match {
-          case n if ( n & Opcodes.ACC_INTERFACE ) > 0 => toListInternal( n ^ Opcodes.ACC_INTERFACE, IsInterface :: result )
-          case n if ( n & Opcodes.ACC_ANNOTATION ) > 0 => toListInternal( n ^ Opcodes.ACC_ANNOTATION, IsAnnotation :: result )
-          case n if ( n & Opcodes.ACC_ENUM ) > 0 => toListInternal( n ^ Opcodes.ACC_ENUM, IsEnum :: result )
-          case n if ( n & Opcodes.ACC_STATIC ) > 0 => toListInternal( n ^ Opcodes.ACC_STATIC, IsStatic :: result )
+          case n if ( n & Opcodes.ACC_INTERFACE ) > 0 => toList_impl( n ^ Opcodes.ACC_INTERFACE, IsInterface :: result )
+          case n if ( n & Opcodes.ACC_ANNOTATION ) > 0 => toList_impl( n ^ Opcodes.ACC_ANNOTATION, IsAnnotation :: result )
+          case n if ( n & Opcodes.ACC_ENUM ) > 0 => toList_impl( n ^ Opcodes.ACC_ENUM, IsEnum :: result )
+          case n if ( n & Opcodes.ACC_STATIC ) > 0 => toList_impl( n ^ Opcodes.ACC_STATIC, IsStatic :: result )
           case _ => result
         }
       }
-      toListInternal( i, List.empty )
+      toList_impl( i, List.empty )
     }
   }
   object AccessElements {

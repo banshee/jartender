@@ -18,7 +18,7 @@ object Fnord {
 class ProviderFinderTest extends FunSuite {
   test( "can parse class by name" ) {
     val fnord = "com/restphone/asm/Fnord"
-    expect( Some( true ) ) {
+    expectResult( Some( true ) ) {
       for {
         r <- ProviderFinder.buildItemsFromClassName( fnord )
       } yield {

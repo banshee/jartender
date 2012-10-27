@@ -1,22 +1,10 @@
 package com.restphone.asm
 
-import java.io.FileInputStream
-import java.util.ArrayList
-import org.objectweb.asm.AnnotationVisitor
-import org.objectweb.asm.FieldVisitor
-import org.objectweb.asm.Opcodes
-import scala.collection._
-import org.objectweb.asm.ClassReader
-import java.io.FileInputStream
-import org.scalatest.matchers.ShouldMatchers
-import org.scalatest.Spec
-import org.scalatest.FunSuite
-import scala.collection.mutable.Stack
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import scalaz._
-import Scalaz._
+import scala.Array.fallbackCanBuildFrom
+import scala.collection.mutable
+
 import org.objectweb.asm.MethodVisitor
+import org.objectweb.asm.Opcodes
 
 sealed abstract class Consumer
 case class ConsumesClass( k : String ) extends Consumer
