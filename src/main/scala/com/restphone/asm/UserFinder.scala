@@ -2,9 +2,9 @@ package com.restphone.asm
 
 import scala.Array.fallbackCanBuildFrom
 import scala.collection.mutable
-
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
+import com.restphone.parser.JavaSignatureParser
 
 sealed abstract class Consumer
 case class ConsumesClass( k : String ) extends Consumer
