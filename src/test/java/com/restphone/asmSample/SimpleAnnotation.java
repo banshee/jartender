@@ -8,6 +8,7 @@ public @interface SimpleAnnotation {
     @SecondAnnotation public String a();
     public SecondAnnotation b();
 }
-//Set(ProvidesClass[name=com/restphone/asmSample/SimpleAnnotation]
+//List(ProvidesClass[name=com/restphone/asmSample/SimpleAnnotation]
+//ProvidesAnnotation(Ljava/lang/annotation/Target;,true)
 //ProvidesMethod[name=com/restphone/asmSample/SimpleAnnotation.a.()Ljava/lang/String;]
 //ProvidesMethod[name=com/restphone/asmSample/SimpleAnnotation.b.()Lcom/restphone/asmSample/SecondAnnotation;])

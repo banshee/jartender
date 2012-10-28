@@ -14,7 +14,16 @@ case object IsEnum extends ClassModifiers
 case object IsStatic extends ClassModifiers
 
 sealed abstract class Provider
-case class ProvidesClass(version: Int, access: Int, name: String, signature: String, superName: String, interfaces: Array[String]) extends Provider {
+case class ProvidesClass(
+  version: Int,
+  access: Int,
+  name: String,
+  signature: String,
+  superName: String,
+  interfaces: Array[String],
+  annotations: List[UsesClass],
+  methods: List[UsesMethod],
+  fields: List[UsesField]) extends Provider {
   // Note that interfaces are classes with access bits of ACC_INTERFACE and ACC_ABSTRACT set (0x400, 0x200)
   def field(access: Int, name: String, desc: String, signature: String, value: Object) = ProvidesField(this, access, name, desc, signature, value)
   def method(access: Int, name: String, desc: String, signature: String, exceptions: Array[String]) = ProvidesMethod(this, access, name, desc, signature, exceptions)
@@ -28,11 +37,16 @@ case class ProvidesMethod(klass: ProvidesClass, access: Int, name: String, desc:
 }
 case class ProvidesAnnotation(name: String, visible: Boolean) extends Provider
 
+sealed abstract class ElementUser
+case class UsesClass(name: String) extends ElementUser
+case class UsesMethod(name: String, klass: String) extends ElementUser
+case class UsesField(name: String, klass: String) extends ElementUser
+
 case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
   var currentClassProvider: Option[ProvidesClass] = None
 
   private val elements = mutable.ArrayBuffer[Provider]()
-  
+
   def getProvidedElements = elements.toList
 
   override def visit(version: Int, access: Int, name: String, signature: String, superName: String, interfaces: Array[String]) = {
@@ -56,7 +70,7 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
     null
   }
 
-  def annotationVisitorCreator(parent: Option[org.objectweb.asm.AnnotationVisitor] = None) : AnnotationVisitor = {
+  def annotationVisitorCreator(parent: Option[org.objectweb.asm.AnnotationVisitor] = None): AnnotationVisitor = {
     new org.objectweb.asm.AnnotationVisitor(Opcodes.ASM4) {
       override def visit(name: String, value: Object) = {
         println(f"in visit, name is $name, parent is $parent")
@@ -66,12 +80,12 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
       }
 
       //    public AnnotationVisitor visitAnnotation(String name, String desc) {
-      override def visitAnnotation(name: String, desc: String) : AnnotationVisitor = {
+      override def visitAnnotation(name: String, desc: String): AnnotationVisitor = {
         annotationVisitorCreator(Some(this))
       }
 
       //    public AnnotationVisitor visitArray(String name) {
-      override def visitArray(name: String) : AnnotationVisitor = {
+      override def visitArray(name: String): AnnotationVisitor = {
         annotationVisitorCreator(Some(this))
       }
     }
