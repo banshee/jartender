@@ -32,7 +32,7 @@ case class ProvidesClass(
   // Note that interfaces are classes with access bits of ACC_INTERFACE and ACC_ABSTRACT set (0x400, 0x200)
   def field(access: Int, name: String, desc: String, signature: String, value: Object, annotations: List[UsesClass]) = ProvidesField(this, access, name, desc, signature, value)
   def method(access: Int, name: String, desc: String, signature: String, exceptions: Array[String]) = ProvidesMethod(this, access, name, desc, signature, exceptions)
-  override def toString = f"ProvidesClass[name=$name]"
+  override def toString = f"ProvidesClass[name=$name,\n fields=$fields\n annotation=$annotations\n interfaces=$interfaces\n methods=$methods]"
 }
 case class ProvidesField(klass: ProvidesClass, access: Int, name: String, desc: String, signature: String, value: Object,
   annotations: Stack[UsesClass] = Stack()) extends Provider {
@@ -45,7 +45,7 @@ case class ProvidesMethod(klass: ProvidesClass,
   signature: String,
   exceptions: Array[String],
   annotations: Stack[UsesClass] = Stack()) extends Provider {
-//  override def toString = f"ProvidesMethod[name=${klass.name}.${name}.$desc]"
+  override def toString = f"ProvidesMethod[name=${klass.name}.${name}.$desc]"
 }
 
 sealed abstract class ElementUser
