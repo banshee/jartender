@@ -19,8 +19,6 @@ externalResolvers := Seq(
 
 transitiveClassifiers := Seq("sources")
 
-EclipseKeys.withSource := true
-
 libraryDependencies ++= Seq(
   "org.scalaz" % "scalaz-concurrent_2.10.0-M7" % "7.0.0-M3",
   "com.google.guava" % "guava" % "13.0.1",
