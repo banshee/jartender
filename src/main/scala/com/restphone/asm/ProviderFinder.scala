@@ -45,7 +45,7 @@ case class ProvidesMethod(klass: ProvidesClass,
   signature: String,
   exceptions: Array[String],
   annotations: Stack[UsesClass] = Stack()) extends Provider {
-  override def toString = f"ProvidesMethod[name=${klass.name}.${name}.$desc]"
+//  override def toString = f"ProvidesMethod[name=${klass.name}.${name}.$desc]"
 }
 
 sealed abstract class ElementUser
@@ -98,28 +98,8 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
     null
   }
 
-//case class AccessElements(i: Int) {
-//    def toList = {
-//      def toList_impl(value: Int, result: List[ClassModifiers]): List[ClassModifiers] = {
-//        value match {
-//          case n if (n & Opcodes.ACC_INTERFACE) > 0 => toList_impl(n ^ Opcodes.ACC_INTERFACE, IsInterface :: result)
-//          case n if (n & Opcodes.ACC_ANNOTATION) > 0 => toList_impl(n ^ Opcodes.ACC_ANNOTATION, IsAnnotation :: result)
-//          case n if (n & Opcodes.ACC_ENUM) > 0 => toList_impl(n ^ Opcodes.ACC_ENUM, IsEnum :: result)
-//          case n if (n & Opcodes.ACC_STATIC) > 0 => toList_impl(n ^ Opcodes.ACC_STATIC, IsStatic :: result)
-//          case _ => result
-//        }
-//      }
-//      toList_impl(i, List.empty)
-//    }
-//  }
-//
-//  object AccessElements {
-//    implicit def toSet(x: AccessElements): Set[ClassModifiers] = Set(x.toList: _*)
-//  }
-//
-//  def getElements: Set[Provider] = Set(elements: _*)
-//}
-//
+}
+
 object ProviderFinder {
   def buildItems(cr: ClassReader)(implicit pf: ProviderFinder) = {
     cr.accept(pf, 0)
@@ -128,13 +108,13 @@ object ProviderFinder {
 
   implicit val standardProviderFinder = ProviderFinder()
   def buildItemsFromClassName(klass: String, pf: ProviderFinder = ProviderFinder()): Option[List[Provider]] =
-    Some(buildItems(new ClassReader(klass))(pf))
+    Some(buildItems(new ClassReader(klass))(pf).toList)
   def buildItemsFromClassFile(filename: String, pf: ProviderFinder = ProviderFinder()): Option[List[Provider]] = {
     for {
       fis <- Option(new FileInputStream(filename))
       cr <- Option(new ClassReader(fis))
     } yield {
-      buildItems(cr)(pf)
+      buildItems(cr)(pf).toList
     }
   }
 }
