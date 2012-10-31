@@ -10,6 +10,7 @@ import org.objectweb.asm.FieldVisitor
 import scalaz.Lens
 import scalaz.Lens._
 import scala.collection.mutable.Stack
+import org.objectweb.asm.MethodVisitor
 
 sealed abstract class ClassModifiers
 case object IsInterface extends ClassModifiers
@@ -24,61 +25,54 @@ case class ProvidesClass(
   name: String,
   signature: String,
   superName: String,
-  interfaces: List[String],
-  annotations: Stack[UsesClass],
-  methods: Stack[ProvidesMethod],
-  fields: Stack[ProvidesField]
-  ) extends Provider {
+  interfaces: List[String]) extends Provider {
   // Note that interfaces are classes with access bits of ACC_INTERFACE and ACC_ABSTRACT set (0x400, 0x200)
-  def field(access: Int, name: String, desc: String, signature: String, value: Object, annotations: List[UsesClass]) = ProvidesField(this, access, name, desc, signature, value)
-  def method(access: Int, name: String, desc: String, signature: String, exceptions: Array[String]) = ProvidesMethod(this, access, name, desc, signature, exceptions)
-  override def toString = f"ProvidesClass[name=$name,\n fields=$fields\n annotation=$annotations\n interfaces=$interfaces\n methods=$methods]"
+  def field(access: Int, name: String, desc: String, signature: String, value: Object, annotations: List[UsesClass]) = ProvidesField(access, name, desc, signature, value)
+  def method(access: Int, name: String, desc: String, signature: String, exceptions: Array[String]) = ProvidesMethod(access, name, desc, Option(signature), exceptions.toList)
+  override def toString = f"ProvidesClass[name=$name,\n interfaces=$interfaces\n]"
 }
-case class ProvidesField(klass: ProvidesClass, access: Int, name: String, desc: String, signature: String, value: Object,
-  annotations: Stack[UsesClass] = Stack()) extends Provider {
-  override def toString = f"ProvidesField[name=${klass.name}.${name}.$desc]"
+case class ProvidesField(access: Int, name: String, desc: String, signature: String, value: Object) extends Provider {
+  override def toString = f"ProvidesField[name=${name} desc=$desc]"
 }
-case class ProvidesMethod(klass: ProvidesClass,
+case class ProvidesMethod(
   access: Int,
   name: String,
   desc: String,
-  signature: String,
-  exceptions: Array[String],
-  annotations: Stack[UsesClass] = Stack()) extends Provider {
-  override def toString = f"ProvidesMethod[name=${klass.name}.${name}.$desc]"
+  signature: Option[String],
+  exceptions: List[String]) extends Provider {
+  override def toString = f"ProvidesMethod[name=${name} desc=$desc]"
 }
-
-sealed abstract class ElementUser
-case class UsesClass(name: String) extends ElementUser
-case class UsesMethod(name: String, klass: String) extends ElementUser
-case class UsesField(name: String, klass: String) extends ElementUser
+case class UsesClass(name: String) extends Provider
+case class UsesAnnotation(name: String) extends Provider
+case class UsesMethod(name: String, klass: String) extends Provider
+case class UsesField(name: String, klass: String) extends Provider
 
 case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
-  var currentClassProvider = Stack[ProvidesClass]()
+  private val elements = Stack[Provider]()
 
-  def replaceHeadClass(c: ProvidesClass) = currentClassProvider.update(0, c)
-
-  def getProvidedElements = currentClassProvider
-
+  def getProvidedElements = elements.reverse
+  
+  private def nullToEmptyList[T](xs: Array[T]) = xs match {
+    case null => List.empty : List[T]
+    case _ => xs.toList
+  }
+  
   override def visit(version: Int, access: Int, name: String, signature: String, superName: String, interfaces: Array[String]) = {
-    val cls = ProvidesClass(version = version, access = access,
+    val cls = ProvidesClass(version = version,
+      access = access,
       name = name,
       signature = signature,
       superName = superName,
-      interfaces = interfaces.toList,
-      annotations = Stack(),
-      methods = Stack(),
-      fields = Stack())
-    currentClassProvider.push(cls)
+      interfaces = interfaces.toList)
+    elements.push(cls)
   }
 
   override def visitField(access: Int, name: String, desc: String, signature: String, value: Object) = {
-    val currentClass = currentClassProvider.head
-    val f = currentClass.field(access, name, desc, signature, value, annotations = List.empty)
-    currentClass.fields.push(f)
+    val f = ProvidesField(access, name, desc, signature, value)
+    elements.push(f)
     new FieldVisitor(Opcodes.ASM4) {
       override def visitAnnotation(desc: String, visibleAtRuntime: Boolean) = {
-        f.annotations.push(UsesClass(desc))
+        elements.push(UsesAnnotation(desc))
         null
       }
     }
@@ -86,18 +80,16 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
 
   override def visitMethod(access: Int, name: String, desc: String, signature: String, exceptions: Array[String]) = {
     //    currentClassProvider = currentClassProvider.head.method( access, name, desc, signature, exceptions ) :: currentClassProvider.tail
-    val h = currentClassProvider.top
-    val m = h.method( access, name, desc, signature, exceptions )
-    h.methods.push(m)
-    null
+    elements.push(ProvidesMethod(access, name, desc, Option(signature), nullToEmptyList(exceptions)))
+    new MethodVisitor(Opcodes.ASM4) {
+      
+    }
   }
 
   override def visitAnnotation(desc: String, visible: Boolean) = {
-    val h = currentClassProvider.top
-    h.annotations.push(UsesClass(desc))
+    elements.push(UsesAnnotation(desc))
     null
   }
-
 }
 
 object ProviderFinder {

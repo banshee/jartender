@@ -84,10 +84,7 @@ class ProviderFinderTest extends FunSuite {
     val testMeStringLens: Lens[TestMe, String] = Lens.lensu(
       (tm, s) => tm.copy(y = s),
       _.y)
-    val listInsideTestMeLens = testMeListIntLens.%%=(s)
     var listUnderTest = List(1, 2)
     val testMe = TestMe(listUnderTest, "stringOne")
-    val result = listInsideTestMeLens.set(testMe, 10)
-    println(result)
   }
 }
