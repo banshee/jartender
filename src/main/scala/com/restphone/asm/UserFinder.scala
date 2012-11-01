@@ -1,4 +1,4 @@
-package com.restphone.asm
+package com.restphone.jartender
 
 import scala.Array.fallbackCanBuildFrom
 import scala.collection.mutable

@@ -1,4 +1,4 @@
-package com.restphone.asm
+package com.restphone.jartender
 
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
