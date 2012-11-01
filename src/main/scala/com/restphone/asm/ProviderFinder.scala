@@ -11,6 +11,7 @@ import scalaz.Lens
 import scalaz.Lens._
 import scala.collection.mutable.Stack
 import org.objectweb.asm.MethodVisitor
+import org.objectweb.asm.Handle
 
 sealed abstract class ClassModifiers
 case object IsInterface extends ClassModifiers
@@ -44,19 +45,25 @@ case class ProvidesMethod(
 }
 case class UsesClass(name: String) extends Provider
 case class UsesAnnotation(name: String) extends Provider
-case class UsesMethod(name: String, klass: String) extends Provider
-case class UsesField(name: String, klass: String) extends Provider
+case class UsesMethod(opcode: Int, owner: String, name: String, desc: String) extends Provider
+case class UsesField(opcode: Int, owner: String, name: String, desc: String) extends Provider
 
 case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
-  private val elements = Stack[Provider]()
-
-  def getProvidedElements = elements.reverse
+  type Elements = List[Provider]
   
-  private def nullToEmptyList[T](xs: Array[T]) = xs match {
-    case null => List.empty : List[T]
-    case _ => xs.toList
+  def asString(elements: Elements) = {
+    elements.mkString("\n")
   }
   
+  private val elements = Stack[Provider]()
+
+  def getProvidedElements: Elements = elements.reverse.toList
+
+  private def nullToEmptyList[T](xs: Array[T]) = xs match {
+    case null => List.empty: List[T]
+    case _ => xs.toList
+  }
+
   override def visit(version: Int, access: Int, name: String, signature: String, superName: String, interfaces: Array[String]) = {
     val cls = ProvidesClass(version = version,
       access = access,
@@ -82,7 +89,23 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
     //    currentClassProvider = currentClassProvider.head.method( access, name, desc, signature, exceptions ) :: currentClassProvider.tail
     elements.push(ProvidesMethod(access, name, desc, Option(signature), nullToEmptyList(exceptions)))
     new MethodVisitor(Opcodes.ASM4) {
-      
+      //     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
+      override def visitAnnotation(desc: String, visible: Boolean) = {
+        elements.push(UsesAnnotation(desc))
+        null
+      }
+      //    	override def visitField(access: Int, name: String, desc: Option[String], signature: Option[String], value: Object) = {
+      //    	  elements.push(UsesField(access, name, desc, signature, value))
+      //    	  null
+      //    	}
+      override def visitFieldInsn(opcode: Int, owner: String, name: String, desc: String) =
+        elements.push(UsesField(opcode, owner, name, desc))
+      //     public void visitMethodInsn(int opcode, String owner, String name, String desc) {
+      override def visitMethodInsn(opcode: Int, owner: String, name: String, desc: String) =
+        elements.push(UsesMethod(opcode, owner, name, desc))
+      //     public void visitInvokeDynamicInsn(String name, String desc, Handle bsm, Object... bsmArgs) {
+      override def visitInvokeDynamicInsn(name: String, desc: String, bsm: Handle, bsmArgs: Object*) =
+        null
     }
   }
 

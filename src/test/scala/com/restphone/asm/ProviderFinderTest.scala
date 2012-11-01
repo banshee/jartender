@@ -11,6 +11,11 @@ class FnordClass {
   class Subfnord {
   }
   @SimpleAnnotation(a = "foo", b = new SecondAnnotation) def thisHasANestedAnnotation = 0
+  def thisIsAMethod(f: FnordClass) = {
+    println("something" + f.another)
+    "done"
+  }
+  def another = "antoher"
 }
 trait FooTrait {
   def fnord
@@ -37,7 +42,9 @@ class ProviderFinderTest extends FunSuite {
         r <- ProviderFinder.buildItemsFromClassName(name)
       } yield {
         //        assert( r.contains( ProvidesClass( fnord ) ) )
-        println(r);
+        println(name + "****\n\n")
+        println(r.mkString("\n"));
+        println(name + "----\n\n")
         true
       }
     }
@@ -63,7 +70,7 @@ class ProviderFinderTest extends FunSuite {
         r <- ProviderFinder.buildItemsFromClassName(name)
       } yield {
         //        assert( r.contains( ProvidesClass( fnord ) ) )
-        println(r);
+        showResult(name, r)
         true
       }
     }
@@ -86,5 +93,11 @@ class ProviderFinderTest extends FunSuite {
       _.y)
     var listUnderTest = List(1, 2)
     val testMe = TestMe(listUnderTest, "stringOne")
+  }
+  
+  def showResult(name: String, elements: List[Provider]) = {
+    val s = elements.mkString("\n")
+    val q = ""
+    println(f"Results for $name are\n$s")
   }
 }
