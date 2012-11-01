@@ -18,6 +18,7 @@ case object IsAnnotation extends ClassModifiers
 case object IsEnum extends ClassModifiers
 case object IsStatic extends ClassModifiers
 
+
 sealed abstract class Provider
 case class ProvidesClass(
   version: Int, 

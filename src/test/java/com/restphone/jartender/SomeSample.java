@@ -1,4 +1,4 @@
-package com.restphone.asmSample;
+package com.restphone.jartender;
 
 public class SomeSample {
 	@SimpleAnnotation(a = "foo", b = @SecondAnnotation)

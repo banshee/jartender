@@ -1,4 +1,4 @@
-package com.restphone.asmSample;
+package com.restphone.jartender;
 
 public class JavaStringHolder {
 	public static String simpleAnnotation = "package com.restphone.asmSample;\r\n" + 
