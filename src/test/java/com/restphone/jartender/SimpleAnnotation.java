@@ -1,4 +1,4 @@
-package com.restphone.asmSample;
+package com.restphone.jartender;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;

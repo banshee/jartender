@@ -1,13 +1,9 @@
-package com.restphone.asm
+package com.restphone.jartender
 
 import java.io.FileInputStream
-import scala.collection.Set
-import scala.collection.mutable
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.Opcodes
-import org.objectweb.asm.AnnotationVisitor
 import org.objectweb.asm.FieldVisitor
-import scalaz.Lens
 import scalaz.Lens._
 import scala.collection.mutable.Stack
 import org.objectweb.asm.MethodVisitor

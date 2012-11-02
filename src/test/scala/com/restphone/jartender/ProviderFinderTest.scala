@@ -1,11 +1,12 @@
-package com.restphone.asm
+package com.restphone.jartender
 
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
-import org.scalatest.junit._
-import com.restphone.asm._
-import com.restphone.asmSample._
+import scalaz._
 import scalaz.Lens
+import org.junit.runner.RunWith
+import org.scalatest.FunSuite
+import org.scalatest.junit.JUnitRunner
 
 class FnordClass {
   class Subfnord {
@@ -36,7 +37,7 @@ class ProviderFinderTest extends FunSuite {
   //    }
   //  }
   test("can parse an interface") {
-    val name = "com/restphone/asm/FooTrait"
+    val name = "com/restphone/jartender/FooTrait"
     expectResult(Some(true)) {
       for {
         r <- ProviderFinder.buildItemsFromClassName(name)
@@ -51,7 +52,7 @@ class ProviderFinderTest extends FunSuite {
   }
 
   test("can parse an annotation") {
-    val name = "com/restphone/asmSample/SimpleAnnotation"
+    val name = "com/restphone/jartender/SimpleAnnotation"
     expectResult(Some(true)) {
       for {
         r <- ProviderFinder.buildItemsFromClassName(name)
@@ -64,7 +65,7 @@ class ProviderFinderTest extends FunSuite {
   }
 
   test("can parse a class with a subclass") {
-    val name = "com/restphone/asm/FnordClass"
+    val name = "com/restphone/jartender/FnordClass"
     expectResult(Some(true)) {
       for {
         r <- ProviderFinder.buildItemsFromClassName(name)
