@@ -2,75 +2,69 @@ package com.restphone.jartender
 
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
-import org.scalatest.junit._
-import com.restphone.asm._
-import com.restphone.asmSample._
+import scalaz._
 import scalaz.Lens
+import org.junit.runner.RunWith
+import org.scalatest.FunSuite
+import org.scalatest.junit.JUnitRunner
 
-class FnordClass {
-  class Subfnord {
-  }
-  @SimpleAnnotation(a = "foo", b = new SecondAnnotation) def thisHasANestedAnnotation = 0
-  def thisIsAMethod(f: FnordClass) = {
-    println("something" + f.another)
-    "done"
-  }
-  def another = "antoher"
-}
-trait FooTrait {
-  def fnord
+import Scalaz._
+import scalaz._
+
+trait SampleTrait {
+  def aMethod
 }
 
 @RunWith(classOf[JUnitRunner])
 class ProviderFinderTest extends FunSuite {
-  //  test( "can parse class by name" ) {
-  //    val fnord = "com/restphone/asm/Fnord"
-  //    expectResult( Some( true ) ) {
-  //      for {
-  //        r <- ProviderFinder.buildItemsFromClassName( fnord )
-  //      } yield {
-  ////        assert( r.contains( ProvidesClass( fnord ) ) )
-  //        assert (5 === r.size)
-  //        true
-  //      }
-  //    }
-  //  }
   test("can parse an interface") {
-    val name = "com/restphone/asm/FooTrait"
+    val name = "com/restphone/jartender/SampleTrait"
     expectResult(Some(true)) {
       for {
         r <- ProviderFinder.buildItemsFromClassName(name)
       } yield {
-        //        assert( r.contains( ProvidesClass( fnord ) ) )
-        println(name + "****\n\n")
-        println(r.mkString("\n"));
-        println(name + "----\n\n")
+        showResult(name, r)
         true
       }
     }
   }
 
   test("can parse an annotation") {
-    val name = "com/restphone/asmSample/SimpleAnnotation"
+    val name = "com/restphone/jartender/AnnotationI"
     expectResult(Some(true)) {
       for {
         r <- ProviderFinder.buildItemsFromClassName(name)
       } yield {
-        //        assert( r.contains( ProvidesClass( fnord ) ) )
-        println(r);
+        showResult(name, r)
         true
       }
     }
   }
 
+  def listToStreamOfLists[T](lst: List[T]): Stream[List[T]] = lst match {
+    case h :: t => lst #:: listToStreamOfLists(t)
+    case Nil => Stream.empty
+  }
+
   test("can parse a class with a subclass") {
-    val name = "com/restphone/asm/FnordClass"
+    val name = "com/restphone/jartender/JartenderSample"
     expectResult(Some(true)) {
       for {
         r <- ProviderFinder.buildItemsFromClassName(name)
       } yield {
-        //        assert( r.contains( ProvidesClass( fnord ) ) )
-        showResult(name, r)
+        showResult(JavaStringHolder.jartenderSample, r)
+        listToStreamOfLists(r) collectFirst { case (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true } isDefined
+      }
+    }
+  }
+
+  test("can parse a subclass") {
+    val name = "com/restphone/jartender/JartenderSample$JartenderSampleSubclass"
+    expectResult(Some(true)) {
+      for {
+        r <- ProviderFinder.buildItemsFromClassName(name)
+      } yield {
+        showResult(JavaStringHolder.jartenderSample, r)
         true
       }
     }
@@ -94,7 +88,7 @@ class ProviderFinderTest extends FunSuite {
     var listUnderTest = List(1, 2)
     val testMe = TestMe(listUnderTest, "stringOne")
   }
-  
+
   def showResult(name: String, elements: List[Provider]) = {
     val s = elements.mkString("\n")
     val q = ""

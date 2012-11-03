@@ -1,6 +1,5 @@
 package com.restphone.jartender
 
-import scala.Array.fallbackCanBuildFrom
 import scala.collection.mutable
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
@@ -14,7 +13,7 @@ case class ConsumesMethod( opcode : Int, owner : String, name : String, desc : S
 case class ConsumesTypeInstruction( opcode : Int, typeString : String ) extends Consumer
 case class ConsumesFieldInstruction( opcode : Int, owner : String, name : String, desc : String ) extends Consumer
 
-case class UserFinder extends org.objectweb.asm.ClassVisitor( Opcodes.ASM4 ) {
+case class UserFinder extends org.objectweb.asm.ClassVisitor( Opcodes.ASM4)  {
   val consumes = mutable.ArrayBuffer[ Consumer ]()
 
   override def visit( version : Int,
