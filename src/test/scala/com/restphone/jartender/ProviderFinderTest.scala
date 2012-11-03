@@ -8,70 +8,65 @@ import org.junit.runner.RunWith
 import org.scalatest.FunSuite
 import org.scalatest.junit.JUnitRunner
 
-class FnordClass {
-  class Subfnord {
-  }
-  @SimpleAnnotation(a = "foo", b = new SecondAnnotation) def thisHasANestedAnnotation = 0
-  def thisIsAMethod(f: FnordClass) = {
-    println("something" + f.another)
-    "done"
-  }
-  def another = "antoher"
-}
-trait FooTrait {
-  def fnord
+import Scalaz._
+import scalaz._
+
+trait SampleTrait {
+  def aMethod
 }
 
 @RunWith(classOf[JUnitRunner])
 class ProviderFinderTest extends FunSuite {
-  //  test( "can parse class by name" ) {
-  //    val fnord = "com/restphone/asm/Fnord"
-  //    expectResult( Some( true ) ) {
-  //      for {
-  //        r <- ProviderFinder.buildItemsFromClassName( fnord )
-  //      } yield {
-  ////        assert( r.contains( ProvidesClass( fnord ) ) )
-  //        assert (5 === r.size)
-  //        true
-  //      }
-  //    }
-  //  }
   test("can parse an interface") {
-    val name = "com/restphone/jartender/FooTrait"
+    val name = "com/restphone/jartender/SampleTrait"
     expectResult(Some(true)) {
       for {
         r <- ProviderFinder.buildItemsFromClassName(name)
       } yield {
-        //        assert( r.contains( ProvidesClass( fnord ) ) )
-        println(name + "****\n\n")
-        println(r.mkString("\n"));
-        println(name + "----\n\n")
+        showResult(name, r)
         true
       }
     }
   }
 
   test("can parse an annotation") {
-    val name = "com/restphone/jartender/SimpleAnnotation"
+    val name = "com/restphone/jartender/AnnotationI"
     expectResult(Some(true)) {
       for {
         r <- ProviderFinder.buildItemsFromClassName(name)
       } yield {
-        //        assert( r.contains( ProvidesClass( fnord ) ) )
-        println(r);
+        showResult(name, r)
         true
       }
     }
   }
 
+  def listToSeqOfLists[T](lst: List[T]): Seq[List[T]] = lst match {
+    case h :: t => Seq(lst) ++ listToSeqOfLists(t)
+    case Nil => Seq.empty
+  }
+  
   test("can parse a class with a subclass") {
-    val name = "com/restphone/jartender/FnordClass"
+    val name = "com/restphone/jartender/JartenderSample"
+    expectResult(Some(true)) {
+      val result = for {
+        r <- ProviderFinder.buildItemsFromClassName(name)
+      } yield {
+        showResult(JavaStringHolder.jartenderSample, r)
+        r
+      }
+      some(true)
+    }
+    
+  }
+
+  test("can parse a subclass") {
+    val name = "com/restphone/jartender/JartenderSample$JartenderSampleSubclass"
     expectResult(Some(true)) {
       for {
         r <- ProviderFinder.buildItemsFromClassName(name)
       } yield {
-        //        assert( r.contains( ProvidesClass( fnord ) ) )
-        showResult(name, r)
+        showResult(JavaStringHolder.jartenderSample, r)
         true
       }
     }
