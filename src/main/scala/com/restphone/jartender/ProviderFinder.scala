@@ -8,6 +8,7 @@ import scalaz.Lens._
 import scala.collection.mutable.Stack
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Handle
+import org.objectweb.asm.AnnotationVisitor
 
 sealed abstract class ClassModifiers
 case object IsInterface extends ClassModifiers
@@ -70,17 +71,26 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
     elements.push(cls)
   }
 
-  trait PushesAnnotation {
-    def visitAnnotation(desc: String, visibleAtRuntime: Boolean) = {
+  trait PushesAnnotationForSeveralTypes {
+    val genericVisitAnnotation = (desc: String, visibleAtRuntime: Boolean) => {
       elements.push(UsesAnnotation(desc))
-      null
+      def fn: AnnotationVisitor = new AnnotationVisitor(Opcodes.ASM4) {
+        override def visitAnnotation(name: String, desc: String): AnnotationVisitor {
+          elements.push(UsesAnnotation(desc))
+          fn
+        }
+      }
     }
+  }
+
+  trait PushesFieldAnnotation extends FieldVisitor with PushesAnnotationForSeveralTypes {
+    abstract override def visitAnnotation(desc: String, visibleAtRuntime: Boolean) = genericVisitAnnotation(desc, visibleAtRuntime)
   }
 
   override def visitField(access: Int, name: String, desc: String, signature: String, value: Object) = {
     val f = ProvidesField(access, name, desc, signature, value)
     elements.push(f)
-    new FieldVisitor(Opcodes.ASM4) with PushesAnnotation
+    new FieldVisitor(Opcodes.ASM4) with PushesFieldAnnotation
   }
 
   override def visitMethod(access: Int, name: String, desc: String, signature: String, exceptions: Array[String]) = {
