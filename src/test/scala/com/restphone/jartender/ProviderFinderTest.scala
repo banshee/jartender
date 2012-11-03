@@ -41,23 +41,21 @@ class ProviderFinderTest extends FunSuite {
     }
   }
 
-  def listToSeqOfLists[T](lst: List[T]): Seq[List[T]] = lst match {
-    case h :: t => Seq(lst) ++ listToSeqOfLists(t)
-    case Nil => Seq.empty
+  def listToStreamOfLists[T](lst: List[T]): Stream[List[T]] = lst match {
+    case h :: t => lst #:: listToStreamOfLists(t)
+    case Nil => Stream.empty
   }
-  
+
   test("can parse a class with a subclass") {
     val name = "com/restphone/jartender/JartenderSample"
     expectResult(Some(true)) {
-      val result = for {
+      for {
         r <- ProviderFinder.buildItemsFromClassName(name)
       } yield {
         showResult(JavaStringHolder.jartenderSample, r)
-        r
+        listToStreamOfLists(r) collectFirst { case (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true } isDefined
       }
-      some(true)
     }
-    
   }
 
   test("can parse a subclass") {
@@ -90,7 +88,7 @@ class ProviderFinderTest extends FunSuite {
     var listUnderTest = List(1, 2)
     val testMe = TestMe(listUnderTest, "stringOne")
   }
-  
+
   def showResult(name: String, elements: List[Provider]) = {
     val s = elements.mkString("\n")
     val q = ""

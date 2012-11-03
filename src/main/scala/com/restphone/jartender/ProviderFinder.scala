@@ -46,11 +46,11 @@ case class UsesField(opcode: Int, owner: String, name: String, desc: String) ext
 
 case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
   type Elements = List[Provider]
-  
+
   def asString(elements: Elements) = {
     elements.mkString("\n")
   }
-  
+
   private val elements = Stack[Provider]()
 
   def getProvidedElements: Elements = elements.reverse.toList
@@ -70,15 +70,17 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
     elements.push(cls)
   }
 
+  trait PushesAnnotation {
+    def visitAnnotation(desc: String, visibleAtRuntime: Boolean) = {
+      elements.push(UsesAnnotation(desc))
+      null
+    }
+  }
+
   override def visitField(access: Int, name: String, desc: String, signature: String, value: Object) = {
     val f = ProvidesField(access, name, desc, signature, value)
     elements.push(f)
-    new FieldVisitor(Opcodes.ASM4) {
-      override def visitAnnotation(desc: String, visibleAtRuntime: Boolean) = {
-        elements.push(UsesAnnotation(desc))
-        null
-      }
-    }
+    new FieldVisitor(Opcodes.ASM4) with PushesAnnotation
   }
 
   override def visitMethod(access: Int, name: String, desc: String, signature: String, exceptions: Array[String]) = {
