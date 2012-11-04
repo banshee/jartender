@@ -75,6 +75,10 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
     result should be(some(true))
   }
 
+  test("can parse nested annotations on a local variable") {
+    // These never end up in bytecode
+  }
+
   test("can parse nested annotations on a class") {
     val sublists = buildJartenderSample
     val result =
