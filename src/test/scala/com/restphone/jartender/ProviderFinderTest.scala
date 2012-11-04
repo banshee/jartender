@@ -68,6 +68,13 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
     result should be(some(true))
   }
 
+  test("can parse nested annotations on a method parameter") {
+    val sublists = buildJartenderSample
+    val result =
+       sublists collectFirst { case ProvidesMethod(_, "testClassMethod", _, _, _) :: _ :: _ :: (_: UsesParameterAnnotation) :: (_: UsesParameterAnnotation) :: t => true }
+    result should be(some(true))
+  }
+
   test("can parse nested annotations on a class") {
     val sublists = buildJartenderSample
     val result =

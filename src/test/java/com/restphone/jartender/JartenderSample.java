@@ -8,7 +8,7 @@ public class JartenderSample implements InterfaceI {
 	}
 	
 	@AnnotationI(a = "i", b = @AnnotationII)
-	public void testClassMethod() {
+	public void testClassMethod(@AnnotationI(a = "i", b = @AnnotationII) String s) {
 		@AnnotationI(a = "ii", b = @AnnotationII)
 		Class<JartenderSample> x = JartenderSample.class;
 		System.out.println(x);

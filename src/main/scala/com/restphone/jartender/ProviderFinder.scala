@@ -42,6 +42,7 @@ case class ProvidesMethod(
 }
 case class UsesClass(name: String) extends Provider
 case class UsesAnnotation(name: String) extends Provider
+case class UsesParameterAnnotation(name: String) extends Provider
 case class UsesMethod(opcode: Int, owner: String, name: String, desc: String) extends Provider
 case class UsesField(opcode: Int, owner: String, name: String, desc: String) extends Provider
 
@@ -71,10 +72,10 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
     elements.push(cls)
   }
 
-  def pushAnnotationAndReturnANewVisitor(desc: String, visibleAtRuntime: Boolean): AnnotationVisitor = {
-    elements.push(UsesAnnotation(desc))
+  def pushAnnotationAndReturnANewVisitor(desc: String, visibleAtRuntime: Boolean, usesGenerator: String => Provider = {UsesAnnotation(_)}): AnnotationVisitor = {
+    elements.push(usesGenerator(desc))
     new AnnotationVisitor(Opcodes.ASM4) {
-      override def visitAnnotation(name: String, desc: String): AnnotationVisitor = pushAnnotationAndReturnANewVisitor(desc, visibleAtRuntime)
+      override def visitAnnotation(name: String, desc: String): AnnotationVisitor = pushAnnotationAndReturnANewVisitor(desc, visibleAtRuntime, usesGenerator)
     }
   }
 
@@ -91,19 +92,19 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
     elements.push(ProvidesMethod(access, name, desc, Option(signature), nullToEmptyList(exceptions)))
     new MethodVisitor(Opcodes.ASM4) {
       //     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-      override def visitAnnotation(desc: String, visible: Boolean) = {
-        elements.push(UsesAnnotation(desc))
-        null
-      }
-      //    	override def visitField(access: Int, name: String, desc: Option[String], signature: Option[String], value: Object) = {
-      //    	  elements.push(UsesField(access, name, desc, signature, value))
-      //    	  null
-      //    	}
+      override def visitAnnotation(desc: String, visible: Boolean) = 
+        pushAnnotationAndReturnANewVisitor(desc, visible)
+
+      override def visitParameterAnnotation(parameter: Int, desc: String, visible: Boolean) = 
+        pushAnnotationAndReturnANewVisitor(desc, visible, UsesParameterAnnotation(_))
+        
       override def visitFieldInsn(opcode: Int, owner: String, name: String, desc: String) =
         elements.push(UsesField(opcode, owner, name, desc))
+
       //     public void visitMethodInsn(int opcode, String owner, String name, String desc) {
       override def visitMethodInsn(opcode: Int, owner: String, name: String, desc: String) =
         elements.push(UsesMethod(opcode, owner, name, desc))
+
       //     public void visitInvokeDynamicInsn(String name, String desc, Handle bsm, Object... bsmArgs) {
       override def visitInvokeDynamicInsn(name: String, desc: String, bsm: Handle, bsmArgs: Object*) =
         null
