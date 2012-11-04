@@ -7,16 +7,16 @@ import scalaz.Lens
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
 import org.scalatest.junit.JUnitRunner
-
 import Scalaz._
 import scalaz._
+import org.scalatest.matchers.ShouldMatchers
 
 trait SampleTrait {
   def aMethod
 }
 
 @RunWith(classOf[JUnitRunner])
-class ProviderFinderTest extends FunSuite {
+class ProviderFinderTest extends FunSuite with ShouldMatchers {
   test("can parse an interface") {
     val name = "com/restphone/jartender/SampleTrait"
     expectResult(Some(true)) {
@@ -46,16 +46,33 @@ class ProviderFinderTest extends FunSuite {
     case Nil => Stream.empty
   }
 
-  test("can parse a class with a subclass") {
+  def buildJartenderSample = {
     val name = "com/restphone/jartender/JartenderSample"
-    expectResult(Some(true)) {
-      for {
-        r <- ProviderFinder.buildItemsFromClassName(name)
-      } yield {
-        showResult(JavaStringHolder.jartenderSample, r)
-        listToStreamOfLists(r) collectFirst { case (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true } isDefined
-      }
-    }
+    val xs = ProviderFinder.buildItemsFromClassName(name)
+    xs should be('defined)
+    showResult(JavaStringHolder.jartenderSample, xs.get)
+    listToStreamOfLists(xs.get)
+  }
+
+  test("can parse nested annotations on a field") {
+    val sublists = buildJartenderSample
+    val result =
+      sublists collectFirst { case ProvidesField(_, "aStaticStringFieldWithAnnotation", _, _, _) :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
+    result should be(some(true))
+  }
+
+  test("can parse nested annotations on a method") {
+    val sublists = buildJartenderSample
+    val result =
+       sublists collectFirst { case ProvidesMethod(_, "testClassMethod", _, _, _) :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
+    result should be(some(true))
+  }
+
+  test("can parse nested annotations on a class") {
+    val sublists = buildJartenderSample
+    val result =
+       sublists collectFirst { case ProvidesClass(_, _, "com/restphone/jartender/JartenderSample", _, _, _) :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
+    result should be(some(true))
   }
 
   test("can parse a subclass") {

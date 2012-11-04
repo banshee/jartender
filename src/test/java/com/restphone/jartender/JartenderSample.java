@@ -1,6 +1,8 @@
 package com.restphone.jartender;
 
+@AnnotationI(a = "i", b = @AnnotationII)
 public class JartenderSample implements InterfaceI {
+	@AnnotationI(a = "i", b = @AnnotationII)
 	class JartenderSampleSubclass {
 		
 	}
