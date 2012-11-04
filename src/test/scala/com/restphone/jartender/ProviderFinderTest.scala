@@ -2,31 +2,35 @@ package com.restphone.jartender
 
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
-import scalaz._
 import scalaz.Lens
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
 import org.scalatest.junit.JUnitRunner
-import Scalaz._
 import scalaz._
+import Scalaz._
 import org.scalatest.matchers.ShouldMatchers
 
+@AnnotationI(a = "i", b = new AnnotationII)
 trait SampleTrait {
+  @AnnotationI(a = "i", b = new AnnotationII)
   def aMethod
 }
 
 @RunWith(classOf[JUnitRunner])
 class ProviderFinderTest extends FunSuite with ShouldMatchers {
-  test("can parse an interface") {
+  def buildSampleTrait = {
     val name = "com/restphone/jartender/SampleTrait"
-    expectResult(Some(true)) {
-      for {
-        r <- ProviderFinder.buildItemsFromClassName(name)
-      } yield {
-        showResult(name, r)
-        true
-      }
-    }
+    val xs = ProviderFinder.buildItemsFromClassName(name)
+    xs should be('defined)
+    showResult(name, xs.get)
+    listToStreamOfLists(xs.get)
+  }
+
+  test("can parse a trait (and traits are interfaces)") {
+    val sublists = buildSampleTrait
+    val result =
+      sublists collectFirst { case ProvidesField(_, "aStaticStringFieldWithAnnotation", _, _, _) :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
+    result should be(some(true))
   }
 
   test("can parse an annotation") {
@@ -35,7 +39,6 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
       for {
         r <- ProviderFinder.buildItemsFromClassName(name)
       } yield {
-        showResult(name, r)
         true
       }
     }
@@ -50,7 +53,6 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
     val name = "com/restphone/jartender/JartenderSample"
     val xs = ProviderFinder.buildItemsFromClassName(name)
     xs should be('defined)
-    showResult(JavaStringHolder.jartenderSample, xs.get)
     listToStreamOfLists(xs.get)
   }
 
@@ -64,14 +66,14 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
   test("can parse nested annotations on a method") {
     val sublists = buildJartenderSample
     val result =
-       sublists collectFirst { case ProvidesMethod(_, "testClassMethod", _, _, _) :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
+      sublists collectFirst { case ProvidesMethod(_, "testClassMethod", _, _, _) :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
     result should be(some(true))
   }
 
   test("can parse nested annotations on a method parameter") {
     val sublists = buildJartenderSample
     val result =
-       sublists collectFirst { case ProvidesMethod(_, "testClassMethod", _, _, _) :: _ :: _ :: (_: UsesParameterAnnotation) :: (_: UsesParameterAnnotation) :: t => true }
+      sublists collectFirst { case ProvidesMethod(_, "testClassMethod", _, _, _) :: _ :: _ :: (_: UsesParameterAnnotation) :: (_: UsesParameterAnnotation) :: t => true }
     result should be(some(true))
   }
 
@@ -82,7 +84,7 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
   test("can parse nested annotations on a class") {
     val sublists = buildJartenderSample
     val result =
-       sublists collectFirst { case ProvidesClass(_, _, "com/restphone/jartender/JartenderSample", _, _, _) :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
+      sublists collectFirst { case ProvidesClass(_, _, "com/restphone/jartender/JartenderSample", _, _, _) :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
     result should be(some(true))
   }
 
@@ -92,7 +94,6 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
       for {
         r <- ProviderFinder.buildItemsFromClassName(name)
       } yield {
-        showResult(JavaStringHolder.jartenderSample, r)
         true
       }
     }
@@ -101,7 +102,6 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
   test("can build a lens") {
     import scalaz._
     import Scalaz._
-    println("fnord2")
     case class TestMe(xs: List[Int], y: String)
     var foo = List(1, 2)
     val testMeListIntLens: Lens[TestMe, List[Int]] = Lens.lensu(

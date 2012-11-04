@@ -5,6 +5,8 @@ import org.objectweb.asm.ClassReader
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.FieldVisitor
 import scalaz.Lens._
+import scalaz._
+import Scalaz._
 import scala.collection.mutable.Stack
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Handle
@@ -32,6 +34,11 @@ case class ProvidesClass(
 case class ProvidesField(access: Int, name: String, desc: String, signature: String, value: Object) extends Provider {
   override def toString = f"ProvidesField[name=${name} desc=$desc]"
 }
+
+object ProvidesFieldWithName {
+  def unapply(f: ProvidesField) = { if (f.name === nm) some(f) else None }
+}
+
 case class ProvidesMethod(
   access: Int,
   name: String,
@@ -72,7 +79,7 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
     elements.push(cls)
   }
 
-  def pushAnnotationAndReturnANewVisitor(desc: String, visibleAtRuntime: Boolean, usesGenerator: String => Provider = {UsesAnnotation(_)}): AnnotationVisitor = {
+  def pushAnnotationAndReturnANewVisitor(desc: String, visibleAtRuntime: Boolean, usesGenerator: String => Provider = { UsesAnnotation(_) }): AnnotationVisitor = {
     elements.push(usesGenerator(desc))
     new AnnotationVisitor(Opcodes.ASM4) {
       override def visitAnnotation(name: String, desc: String): AnnotationVisitor = pushAnnotationAndReturnANewVisitor(desc, visibleAtRuntime, usesGenerator)
@@ -92,12 +99,12 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
     elements.push(ProvidesMethod(access, name, desc, Option(signature), nullToEmptyList(exceptions)))
     new MethodVisitor(Opcodes.ASM4) {
       //     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-      override def visitAnnotation(desc: String, visible: Boolean) = 
+      override def visitAnnotation(desc: String, visible: Boolean) =
         pushAnnotationAndReturnANewVisitor(desc, visible)
 
-      override def visitParameterAnnotation(parameter: Int, desc: String, visible: Boolean) = 
+      override def visitParameterAnnotation(parameter: Int, desc: String, visible: Boolean) =
         pushAnnotationAndReturnANewVisitor(desc, visible, UsesParameterAnnotation(_))
-        
+
       override def visitFieldInsn(opcode: Int, owner: String, name: String, desc: String) =
         elements.push(UsesField(opcode, owner, name, desc))
 

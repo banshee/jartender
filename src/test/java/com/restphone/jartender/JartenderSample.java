@@ -32,3 +32,12 @@ public class JartenderSample implements InterfaceI {
 		return "s";
 	}
 }
+
+class Fnx23 {
+  class BooleanExtractor[T](f: T => Boolean) {
+    def unapply(t: T) = f(t)
+  }
+
+  val ProvidesFieldWithName = new BooleanExtractor[ProvidesField](_.name === "name")
+  object Odd extends BooleanExtractor[Int](_ % 2 == 1)
+}
