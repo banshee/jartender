@@ -44,7 +44,6 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
     val name = "com/restphone/jartender/JartenderSample"
     val xs = ProviderFinder.buildItemsFromClassName(name)
     xs should be('defined)
-    showResult(name, xs.get)
     listToStreamOfLists(xs.get)
   }
 

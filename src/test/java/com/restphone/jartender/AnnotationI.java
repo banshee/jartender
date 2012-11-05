@@ -4,3 +4,4 @@ public @interface AnnotationI {
     @AnnotationII public String a();
     public AnnotationII b();
 }
+
