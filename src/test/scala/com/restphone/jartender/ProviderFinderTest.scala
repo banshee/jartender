@@ -11,10 +11,12 @@ import Scalaz._
 import org.scalatest.matchers.ShouldMatchers
 
 @AnnotationI(a = "i", b = new AnnotationII)
-trait SampleTrait {
+trait SampleTrait extends SampleTraitII {
   @AnnotationI(a = "i", b = new AnnotationII)
   def aMethod
 }
+
+trait SampleTraitII
 
 @RunWith(classOf[JUnitRunner])
 class ProviderFinderTest extends FunSuite with ShouldMatchers {
@@ -22,26 +24,15 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
     val name = "com/restphone/jartender/SampleTrait"
     val xs = ProviderFinder.buildItemsFromClassName(name)
     xs should be('defined)
-    showResult(name, xs.get)
     listToStreamOfLists(xs.get)
   }
 
-  test("can parse a trait (and traits are interfaces)") {
+  test("can analyze a trait (and traits are interfaces)") {
     val sublists = buildSampleTrait
+    val providesClassWithNameSampleTrait = ProvidesClass.createProvidesClassMatcher(_.name == "com/restphone/jartender/SampleTrait")
     val result =
-      sublists collectFirst { case ProvidesField(_, "aStaticStringFieldWithAnnotation", _, _, _) :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
+      sublists collectFirst { case providesClassWithNameSampleTrait :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
     result should be(some(true))
-  }
-
-  test("can parse an annotation") {
-    val name = "com/restphone/jartender/AnnotationI"
-    expectResult(Some(true)) {
-      for {
-        r <- ProviderFinder.buildItemsFromClassName(name)
-      } yield {
-        true
-      }
-    }
   }
 
   def listToStreamOfLists[T](lst: List[T]): Stream[List[T]] = lst match {
@@ -56,65 +47,45 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
     listToStreamOfLists(xs.get)
   }
 
-  test("can parse nested annotations on a field") {
+  test("can analyze nested annotations on a field") {
     val sublists = buildJartenderSample
     val result =
       sublists collectFirst { case ProvidesField(_, "aStaticStringFieldWithAnnotation", _, _, _) :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
     result should be(some(true))
   }
 
-  test("can parse nested annotations on a method") {
+  test("can analyze nested annotations on a method") {
     val sublists = buildJartenderSample
     val result =
       sublists collectFirst { case ProvidesMethod(_, "testClassMethod", _, _, _) :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
     result should be(some(true))
   }
 
-  test("can parse nested annotations on a method parameter") {
+  test("can analyze nested annotations on a method parameter") {
     val sublists = buildJartenderSample
     val result =
       sublists collectFirst { case ProvidesMethod(_, "testClassMethod", _, _, _) :: _ :: _ :: (_: UsesParameterAnnotation) :: (_: UsesParameterAnnotation) :: t => true }
     result should be(some(true))
   }
 
-  test("can parse nested annotations on a local variable") {
+  test("can analyze nested annotations on a local variable") {
     // These never end up in bytecode
   }
 
-  test("can parse nested annotations on a class") {
+  test("can analyze nested annotations on a class") {
     val sublists = buildJartenderSample
     val result =
       sublists collectFirst { case ProvidesClass(_, _, "com/restphone/jartender/JartenderSample", _, _, _) :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
     result should be(some(true))
   }
 
-  test("can parse a subclass") {
+  test("can analyze a subclass") {
     val name = "com/restphone/jartender/JartenderSample$JartenderSampleSubclass"
-    expectResult(Some(true)) {
-      for {
-        r <- ProviderFinder.buildItemsFromClassName(name)
-      } yield {
-        true
-      }
-    }
-  }
+    val xs = ProviderFinder.buildItemsFromClassName(name)
+    xs should be('defined)
 
-  test("can build a lens") {
-    import scalaz._
-    import Scalaz._
-    case class TestMe(xs: List[Int], y: String)
-    var foo = List(1, 2)
-    val testMeListIntLens: Lens[TestMe, List[Int]] = Lens.lensu(
-      (tm, lst) => tm.copy(xs = lst),
-      tm => tm.xs)
-    val listLens: Lens[List[Int], Int] = Lens.lensu(
-      (lst, i) => i :: lst.tail,
-      _.head)
-    val testMeStringLens: Lens[TestMe, String] = Lens.lensu(
-      (tm, s) => tm.copy(y = s),
-      _.y)
-    var listUnderTest = List(1, 2)
-    val testMe = TestMe(listUnderTest, "stringOne")
+    val methodInSubclass = xs.get collectFirst {case ProvidesMethod(_, "methodInSubclass", _, _, _) => true}
+    methodInSubclass should be (some(true))
   }
 
   def showResult(name: String, elements: List[Provider]) = {

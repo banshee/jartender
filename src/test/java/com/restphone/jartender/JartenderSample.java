@@ -4,18 +4,20 @@ package com.restphone.jartender;
 public class JartenderSample implements InterfaceI {
 	@AnnotationI(a = "i", b = @AnnotationII)
 	class JartenderSampleSubclass {
-		
+		public void methodInSubclass() {
+		};
 	}
-	
+
 	@AnnotationI(a = "i", b = @AnnotationII)
-	public void testClassMethod(@AnnotationI(a = "i", b = @AnnotationII) String s) {
+	public void testClassMethod(
+			@AnnotationI(a = "i", b = @AnnotationII) String s) {
 		@AnnotationI(a = "ii", b = @AnnotationII)
 		Class<JartenderSample> x = JartenderSample.class;
 		System.out.println(x);
-		
+
 		// Use a static field
 		System.out.println(JartenderSampleII.aStaticStringFieldWithAnnotation);
-		
+
 		JartenderSampleII j = new JartenderSampleII();
 		System.out.println(j.aFieldWithAnnotation + j.aGenericMethod("j"));
 	}
@@ -27,17 +29,8 @@ public class JartenderSample implements InterfaceI {
 
 	public static String aStaticStringFieldWithoutAnnotation = "fff";
 	public String aFieldWithoutAnnotation = "ffff";
-	
+
 	public <T> String aGenericMethod(T x) {
 		return "s";
 	}
-}
-
-class Fnx23 {
-  class BooleanExtractor[T](f: T => Boolean) {
-    def unapply(t: T) = f(t)
-  }
-
-  val ProvidesFieldWithName = new BooleanExtractor[ProvidesField](_.name === "name")
-  object Odd extends BooleanExtractor[Int](_ % 2 == 1)
 }

@@ -31,14 +31,19 @@ case class ProvidesClass(
   def method(access: Int, name: String, desc: String, signature: String, exceptions: Array[String]) = ProvidesMethod(access, name, desc, Option(signature), exceptions.toList)
   override def toString = f"ProvidesClass[name=$name,\n interfaces=$interfaces\n]"
 }
+object ProvidesClass {
+  def createProvidesClassMatcher(fn: ProvidesClass => Boolean) = new Object {
+    def unapply(f: ProvidesClass) = fn(f)
+  }
+}
 case class ProvidesField(access: Int, name: String, desc: String, signature: String, value: Object) extends Provider {
   override def toString = f"ProvidesField[name=${name} desc=$desc]"
 }
-
-object ProvidesFieldWithName {
-  def unapply(f: ProvidesField) = { if (f.name === nm) some(f) else None }
+object ProvidesField {
+  def createProvidesFieldMatcher(fn: ProvidesField => Boolean) = new Object {
+    def unapply(f: ProvidesField) = fn(f)
+  }
 }
-
 case class ProvidesMethod(
   access: Int,
   name: String,
