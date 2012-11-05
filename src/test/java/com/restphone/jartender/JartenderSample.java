@@ -1,15 +1,19 @@
 package com.restphone.jartender;
 
+import java.io.File;
+import java.io.IOException;
+
 @AnnotationI(a = "i", b = @AnnotationII)
 public class JartenderSample implements InterfaceI {
 	@AnnotationI(a = "i", b = @AnnotationII)
 	class JartenderSampleSubclass {
-		public void methodInSubclass() {
+		public JartenderSample methodInSubclass() {
+			return null;
 		};
 	}
 
 	@AnnotationI(a = "i", b = @AnnotationII)
-	public void testClassMethod(
+	public JartenderSample[] testClassMethod(
 			@AnnotationI(a = "i", b = @AnnotationII) String s) {
 		@AnnotationI(a = "ii", b = @AnnotationII)
 		Class<JartenderSample> x = JartenderSample.class;
@@ -20,6 +24,18 @@ public class JartenderSample implements InterfaceI {
 
 		JartenderSampleII j = new JartenderSampleII();
 		System.out.println(j.aFieldWithAnnotation + j.aGenericMethod("j"));
+		
+		return null;
+	}
+	
+	public void canRaiseException() throws RuntimeException {
+		try {
+			File f = File.createTempFile("", "");
+			System.out.println(f);
+		} catch (IOException e) {
+		} catch (RuntimeException e) {
+		}
+		throw new RuntimeException();
 	}
 
 	@AnnotationI(a = "ii", b = @AnnotationII)

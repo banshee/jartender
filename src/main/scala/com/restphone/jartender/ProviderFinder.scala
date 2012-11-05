@@ -11,6 +11,7 @@ import scala.collection.mutable.Stack
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Handle
 import org.objectweb.asm.AnnotationVisitor
+import org.objectweb.asm.Label
 
 sealed abstract class ClassModifiers
 case object IsInterface extends ClassModifiers
@@ -50,13 +51,14 @@ case class ProvidesMethod(
   desc: String,
   signature: Option[String],
   exceptions: List[String]) extends Provider {
-  override def toString = f"ProvidesMethod[name=${name} desc=$desc]"
+  //  override def toString = f"ProvidesMethod[name=${name} desc=$desc]"
 }
 case class UsesClass(name: String) extends Provider
 case class UsesAnnotation(name: String) extends Provider
 case class UsesParameterAnnotation(name: String) extends Provider
 case class UsesMethod(opcode: Int, owner: String, name: String, desc: String) extends Provider
 case class UsesField(opcode: Int, owner: String, name: String, desc: String) extends Provider
+case class UsesException(exceptionType: String) extends Provider
 
 case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
   type Elements = List[Provider]
@@ -102,8 +104,8 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
   override def visitMethod(access: Int, name: String, desc: String, signature: String, exceptions: Array[String]) = {
     //    currentClassProvider = currentClassProvider.head.method( access, name, desc, signature, exceptions ) :: currentClassProvider.tail
     elements.push(ProvidesMethod(access, name, desc, Option(signature), nullToEmptyList(exceptions)))
+
     new MethodVisitor(Opcodes.ASM4) {
-      //     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
       override def visitAnnotation(desc: String, visible: Boolean) =
         pushAnnotationAndReturnANewVisitor(desc, visible)
 
@@ -113,11 +115,12 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
       override def visitFieldInsn(opcode: Int, owner: String, name: String, desc: String) =
         elements.push(UsesField(opcode, owner, name, desc))
 
-      //     public void visitMethodInsn(int opcode, String owner, String name, String desc) {
       override def visitMethodInsn(opcode: Int, owner: String, name: String, desc: String) =
         elements.push(UsesMethod(opcode, owner, name, desc))
 
-      //     public void visitInvokeDynamicInsn(String name, String desc, Handle bsm, Object... bsmArgs) {
+      override def visitTryCatchBlock(start: Label, end: Label, handler: Label, exceptionType: String) =
+        elements.push(UsesException(exceptionType))
+
       override def visitInvokeDynamicInsn(name: String, desc: String, bsm: Handle, bsmArgs: Object*) =
         null
     }
