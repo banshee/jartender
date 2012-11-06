@@ -157,16 +157,15 @@ object ProviderFinder {
   
   def typeDescriptorToUsesClass(descriptor: String) : Set[UsesClass] = JavaSignatureParser.parse(descriptor).get.typesUsed map {_.toJava} map UsesClass
   def methodDescriptorToUsesClass(descriptor: String) : Set[UsesClass] = JavaSignatureParser.parseMethod(descriptor).get.typesUsed map {_.toJava} map UsesClass
-  def internalNamesToUsesClass(internalNames: Iterable[String]): Set[UsesClass] = internalNames map internalNameToClassName map UsesClass toSet
+  def internalNamesToUsesClass(internalNames: Iterable[String]): Set[UsesClass] = (internalNames map internalNameToUsesClass) toSet
+  def internalNameToUsesClass(internalName: String) = UsesClass(internalNameToClassName(internalName))
   
   def extractClasses(p: Provider): Set[UsesClass] = p match {
-    case ProvidesClass(_, _, name, _, _, interfaces) => {
-      internalNamesToUsesClass(name :: interfaces)
-    } 
+    case ProvidesClass(_, _, name, _, _, interfaces) => internalNamesToUsesClass(name :: interfaces)
     case ProvidesField(_, _, descriptor, _, _)  => typeDescriptorToUsesClass(descriptor)
     case ProvidesMethod(_, _, descriptor, _, exceptions) => {
       val descriptorTypes = methodDescriptorToUsesClass(descriptor)
-      val exceptionTypes = exceptions map internalNameToClassName map UsesClass
+      val exceptionTypes = internalNamesToUsesClass(exceptions)
       descriptorTypes ++ exceptionTypes
     }
     case UsesAnnotation(d, _) => typeDescriptorToUsesClass(d)
@@ -174,6 +173,8 @@ object ProviderFinder {
     case UsesAnnotationEnum(_, descriptor, _) => typeDescriptorToUsesClass(descriptor)
     case UsesParameterAnnotation(descriptor) => typeDescriptorToUsesClass(descriptor)
     case UsesMethod(_, owner, _, desc) => methodDescriptorToUsesClass(desc) ++ internalNamesToUsesClass(List(owner))
-    case _ => Set.empty
+    case UsesField(_, internalName, _, descriptor) => typeDescriptorToUsesClass(descriptor) ++ internalNamesToUsesClass(List(internalName))
+    case UsesException(internalName) => Set(internalNameToUsesClass(internalName))
+    case x : UsesClass => Set(x)
   }
 }

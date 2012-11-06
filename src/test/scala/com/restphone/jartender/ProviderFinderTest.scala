@@ -142,9 +142,23 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
   }
 
   test("can extract classes from UsesMethod") {
-    val pa = UsesMethod(182, "com/restphone/jartender/JartenderSampleII", "aGenericMethod", "(Ljava/lang/Object;)Ljava/lang/String;")
-    val result = ProviderFinder.extractClasses(pa)
+    val um = UsesMethod(182, "com/restphone/jartender/JartenderSampleII", "aGenericMethod", "(Ljava/lang/Object;)Ljava/lang/String;")
+    val result = ProviderFinder.extractClasses(um)
     val expected = Set("com.restphone.jartender.JartenderSampleII", "java.lang.Object", "java.lang.String") map UsesClass
+    result should be (expected)
+  }
+
+  test("can extract classes from UsesField") {
+    val um = UsesField(178, "java/lang/System", "out", "Ljava/io/PrintStream;")
+    val result = ProviderFinder.extractClasses(um)
+    val expected = Set("java.lang.System", "java.io.PrintStream") map UsesClass
+    result should be (expected)
+  }
+
+  test("can extract classes from UsesException") {
+    val um = UsesException("java/lang/RuntimeException")
+    val result = ProviderFinder.extractClasses(um)
+    val expected = Set("java.lang.RuntimeException") map UsesClass
     result should be (expected)
   }
 }
