@@ -49,4 +49,7 @@ public class JartenderSample implements InterfaceI {
 	public <T> String aGenericMethod(T x) {
 		return "s";
 	}
+	
+	@UsesAnnotationWithEnum(enumArray = { AnnotationEnum.SAMPLEVALUE1, AnnotationEnum.SAMPLEVALUE2 }, enumSingle = AnnotationEnum.SAMPLEVALUE1)
+	public void usesAnnotationEnum() {}
 }

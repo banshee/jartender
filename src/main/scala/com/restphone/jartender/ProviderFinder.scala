@@ -54,7 +54,9 @@ case class ProvidesMethod(
   //  override def toString = f"ProvidesMethod[name=${name} desc=$desc]"
 }
 case class UsesClass(name: String) extends Provider
-case class UsesAnnotation(name: String) extends Provider
+case class UsesAnnotation(name: String, visibleAtRuntime: Boolean) extends Provider
+case class UsesAnnotationArray(name: String) extends Provider
+case class UsesAnnotationEnum(name: String, desc: String, value: String) extends Provider
 case class UsesParameterAnnotation(name: String) extends Provider
 case class UsesMethod(opcode: Int, owner: String, name: String, desc: String) extends Provider
 case class UsesField(opcode: Int, owner: String, name: String, desc: String) extends Provider
@@ -86,10 +88,14 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
     elements.push(cls)
   }
 
-  def pushAnnotationAndReturnANewVisitor(desc: String, visibleAtRuntime: Boolean, usesGenerator: String => Provider = { UsesAnnotation(_) }): AnnotationVisitor = {
-    elements.push(usesGenerator(desc))
+  val defaultUsesAnnotationGenerator : (String, Boolean) => Provider = { (n, v) => UsesAnnotation(n, v) }
+  
+  def pushAnnotationAndReturnANewVisitor(desc: String, visibleAtRuntime: Boolean, usesGenerator: (String, Boolean) => Provider = { (n, v) => UsesAnnotation(n, v) }): AnnotationVisitor = {
+    elements.push(usesGenerator(desc, visibleAtRuntime))
     new AnnotationVisitor(Opcodes.ASM4) {
-      override def visitAnnotation(name: String, desc: String): AnnotationVisitor = pushAnnotationAndReturnANewVisitor(desc, visibleAtRuntime, usesGenerator)
+      override def visitAnnotation(name: String, desc: String): AnnotationVisitor = pushAnnotationAndReturnANewVisitor(desc, visibleAtRuntime)
+      override def visitArray(name: String) = pushAnnotationAndReturnANewVisitor("", false,  { _ => UsesAnnotationArray(name) })
+      override def visitEnum(name: String, desc: String, value: String) = elements.push(UsesAnnotationEnum(name, desc, value))
     }
   }
 
@@ -111,6 +117,8 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
 
       override def visitParameterAnnotation(parameter: Int, desc: String, visible: Boolean) =
         pushAnnotationAndReturnANewVisitor(desc, visible, UsesParameterAnnotation(_))
+
+      //     public void visitEnum(String name, String desc, String value) {
 
       override def visitFieldInsn(opcode: Int, owner: String, name: String, desc: String) =
         elements.push(UsesField(opcode, owner, name, desc))
