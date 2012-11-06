@@ -19,7 +19,9 @@ case object IsAnnotation extends ClassModifiers
 case object IsEnum extends ClassModifiers
 case object IsStatic extends ClassModifiers
 
-sealed abstract class Provider
+sealed abstract class Provider {
+  def usesClasses: Set[UsesClass]
+}
 case class ProvidesClass(
   version: Int,
   access: Int,
@@ -30,14 +32,16 @@ case class ProvidesClass(
   // Note that interfaces are classes with access bits of ACC_INTERFACE and ACC_ABSTRACT set (0x400, 0x200)
   def field(access: Int, name: String, desc: String, signature: String, value: Object, annotations: List[UsesClass]) = ProvidesField(access, name, desc, signature, value)
   def method(access: Int, name: String, desc: String, signature: String, exceptions: Array[String]) = ProvidesMethod(access, name, desc, Option(signature), exceptions.toList)
-  //  override def toString = f"ProvidesClass[name=$name,\n interfaces=$interfaces\n]"
+  def usesClasses = ProviderFinder.internalNamesToUsesClass(internalName :: interfaces)
 }
 object ProvidesClass {
   def createProvidesClassMatcher(fn: ProvidesClass => Boolean) = new Object {
     def unapply(f: ProvidesClass) = fn(f)
   }
 }
-case class ProvidesField(access: Int, name: String, desc: String, signature: String, value: Object) extends Provider
+case class ProvidesField(access: Int, name: String, desc: String, signature: String, value: Object) extends Provider {
+  def usesClasses = ProviderFinder.typeDescriptorToUsesClass(desc)
+}
 object ProvidesField {
   def createProvidesFieldMatcher(fn: ProvidesField => Boolean) = new Object {
     def unapply(f: ProvidesField) = fn(f)
@@ -49,16 +53,36 @@ case class ProvidesMethod(
   desc: String,
   signature: Option[String],
   exceptions: List[String]) extends Provider {
-  //  override def toString = f"ProvidesMethod[name=${name} desc=$desc]"
+  def usesClasses = {
+    val descriptorTypes = ProviderFinder.methodDescriptorToUsesClass(desc)
+    val exceptionTypes = ProviderFinder.internalNamesToUsesClass(exceptions)
+    descriptorTypes ++ exceptionTypes
+  }
 }
-case class UsesClass(name: String) extends Provider
-case class UsesAnnotation(name: String, visibleAtRuntime: Option[Boolean]) extends Provider
-case class UsesAnnotationArray(name: String) extends Provider
-case class UsesAnnotationEnum(name: String, desc: String, value: String) extends Provider
-case class UsesParameterAnnotation(descriptor: String) extends Provider
-case class UsesMethod(opcode: Int, owner: String, name: String, desc: String) extends Provider
-case class UsesField(opcode: Int, owner: String, name: String, desc: String) extends Provider
-case class UsesException(exceptionType: String) extends Provider
+case class UsesClass(name: String) extends Provider {
+  def usesClasses = Set(this)
+}
+case class UsesAnnotation(name: String, visibleAtRuntime: Option[Boolean]) extends Provider {
+  def usesClasses = ProviderFinder.typeDescriptorToUsesClass(name)
+}
+case class UsesAnnotationArray(name: String) extends Provider {
+  def usesClasses = Set.empty
+}
+case class UsesAnnotationEnum(name: String, desc: String, value: String) extends Provider {
+  def usesClasses = ProviderFinder.typeDescriptorToUsesClass(desc)
+}
+case class UsesParameterAnnotation(descriptor: String) extends Provider {
+  def usesClasses = ProviderFinder.typeDescriptorToUsesClass(descriptor)
+}
+case class UsesMethod(opcode: Int, owner: String, name: String, desc: String) extends Provider {
+  def usesClasses = ProviderFinder.methodDescriptorToUsesClass(desc) ++ ProviderFinder.internalNamesToUsesClass(List(owner))
+}
+case class UsesField(opcode: Int, owner: String, name: String, desc: String) extends Provider {
+  def usesClasses = ProviderFinder.typeDescriptorToUsesClass(desc) ++ ProviderFinder.internalNamesToUsesClass(List(owner))
+}
+case class UsesException(exceptionType: String) extends Provider {
+  def usesClasses = Set(ProviderFinder.internalNameToUsesClass(exceptionType))
+}
 
 case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
   type Elements = List[Provider]
@@ -153,28 +177,13 @@ object ProviderFinder {
     }
   }
 
+  // Internal names have element separated by slashes instead of dots, so just replace them
   def internalNameToClassName(internalName: String) = internalName.replace('/', '.')
-  
-  def typeDescriptorToUsesClass(descriptor: String) : Set[UsesClass] = JavaSignatureParser.parse(descriptor).get.typesUsed map {_.toJava} map UsesClass
-  def methodDescriptorToUsesClass(descriptor: String) : Set[UsesClass] = JavaSignatureParser.parseMethod(descriptor).get.typesUsed map {_.toJava} map UsesClass
-  def internalNamesToUsesClass(internalNames: Iterable[String]): Set[UsesClass] = (internalNames map internalNameToUsesClass) toSet
+
+  def typeDescriptorToUsesClass(descriptor: String): Set[UsesClass] = JavaSignatureParser.parse(descriptor).get.typesUsed map { _.toJava } map UsesClass
+  def methodDescriptorToUsesClass(descriptor: String): Set[UsesClass] = JavaSignatureParser.parseMethod(descriptor).get.typesUsed map { _.toJava } map UsesClass
   def internalNameToUsesClass(internalName: String) = UsesClass(internalNameToClassName(internalName))
-  
-  def extractClasses(p: Provider): Set[UsesClass] = p match {
-    case ProvidesClass(_, _, name, _, _, interfaces) => internalNamesToUsesClass(name :: interfaces)
-    case ProvidesField(_, _, descriptor, _, _)  => typeDescriptorToUsesClass(descriptor)
-    case ProvidesMethod(_, _, descriptor, _, exceptions) => {
-      val descriptorTypes = methodDescriptorToUsesClass(descriptor)
-      val exceptionTypes = internalNamesToUsesClass(exceptions)
-      descriptorTypes ++ exceptionTypes
-    }
-    case UsesAnnotation(d, _) => typeDescriptorToUsesClass(d)
-    case _: UsesAnnotationArray => Set.empty
-    case UsesAnnotationEnum(_, descriptor, _) => typeDescriptorToUsesClass(descriptor)
-    case UsesParameterAnnotation(descriptor) => typeDescriptorToUsesClass(descriptor)
-    case UsesMethod(_, owner, _, desc) => methodDescriptorToUsesClass(desc) ++ internalNamesToUsesClass(List(owner))
-    case UsesField(_, internalName, _, descriptor) => typeDescriptorToUsesClass(descriptor) ++ internalNamesToUsesClass(List(internalName))
-    case UsesException(internalName) => Set(internalNameToUsesClass(internalName))
-    case x : UsesClass => Set(x)
-  }
+  def internalNamesToUsesClass(internalNames: Iterable[String]): Set[UsesClass] = (internalNames map internalNameToUsesClass) toSet
+
+  def extractClasses(p: Provider): Set[UsesClass] = p.usesClasses
 }
