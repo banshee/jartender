@@ -40,12 +40,16 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
     case Nil => Stream.empty
   }
 
-  def buildJartenderSample = {
+  def buildJartenderBase = {
     val name = "com/restphone/jartender/JartenderSample"
     val xs = ProviderFinder.buildItemsFromClassName(name)
     xs should be('defined)
     showResult(name, xs.get)
-    listToStreamOfLists(xs.get)
+    xs.get
+  }
+  
+  def buildJartenderSample = {
+    listToStreamOfLists(buildJartenderBase)
   }
 
   test("can analyze nested annotations on a field") {
@@ -93,5 +97,18 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
     val s = elements.mkString("\n")
     val q = ""
     println(f"Results for $name are\n$s")
+  }
+  
+  test("can extract classes from ProvidesClass") {
+    val result = buildJartenderBase filter { _.isInstanceOf[ProvidesClass] } flatMap ProviderFinder.extractClasses
+    val usesClassItems = List("com/restphone/jartender/JartenderSample", "com/restphone/jartender/InterfaceI") map UsesClass
+    result should be (usesClassItems)
+  }
+
+  test("can extract classes from ProvidesField") {
+    val pf = ProvidesField(9, "aStaticStringFieldWithAnnotation", "Ljava/lang/String;", null, null)
+    val result = ProviderFinder.extractClasses(pf)
+    val usesClassItems = List("java.lang.String") map UsesClass
+    result should be (usesClassItems)
   }
 }

@@ -30,16 +30,14 @@ case class ProvidesClass(
   // Note that interfaces are classes with access bits of ACC_INTERFACE and ACC_ABSTRACT set (0x400, 0x200)
   def field(access: Int, name: String, desc: String, signature: String, value: Object, annotations: List[UsesClass]) = ProvidesField(access, name, desc, signature, value)
   def method(access: Int, name: String, desc: String, signature: String, exceptions: Array[String]) = ProvidesMethod(access, name, desc, Option(signature), exceptions.toList)
-//  override def toString = f"ProvidesClass[name=$name,\n interfaces=$interfaces\n]"
+  //  override def toString = f"ProvidesClass[name=$name,\n interfaces=$interfaces\n]"
 }
 object ProvidesClass {
   def createProvidesClassMatcher(fn: ProvidesClass => Boolean) = new Object {
     def unapply(f: ProvidesClass) = fn(f)
   }
 }
-case class ProvidesField(access: Int, name: String, desc: String, signature: String, value: Object) extends Provider {
-  override def toString = f"ProvidesField[name=${name} desc=$desc]"
-}
+case class ProvidesField(access: Int, name: String, desc: String, signature: String, value: Object) extends Provider
 object ProvidesField {
   def createProvidesFieldMatcher(fn: ProvidesField => Boolean) = new Object {
     def unapply(f: ProvidesField) = fn(f)
@@ -88,13 +86,13 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
     elements.push(cls)
   }
 
-  val defaultUsesAnnotationGenerator : (String, Option[Boolean]) => Provider = { (n, v) => UsesAnnotation(n, v) }
-  
+  val defaultUsesAnnotationGenerator: (String, Option[Boolean]) => Provider = { (n, v) => UsesAnnotation(n, v) }
+
   def pushAnnotationAndReturnANewVisitor(desc: String, visibleAtRuntime: Option[Boolean], usesGenerator: (String, Option[Boolean]) => Provider = { (n, v) => UsesAnnotation(n, v) }): AnnotationVisitor = {
     elements.push(usesGenerator(desc, visibleAtRuntime))
     new AnnotationVisitor(Opcodes.ASM4) {
       override def visitAnnotation(name: String, desc: String): AnnotationVisitor = pushAnnotationAndReturnANewVisitor(desc, visibleAtRuntime)
-      override def visitArray(name: String) = pushAnnotationAndReturnANewVisitor("", None,  { (_, _) => UsesAnnotationArray(name) })
+      override def visitArray(name: String) = pushAnnotationAndReturnANewVisitor("", None, { (_, _) => UsesAnnotationArray(name) })
       override def visitEnum(name: String, desc: String, value: String) = elements.push(UsesAnnotationEnum(name, desc, value))
     }
   }
@@ -153,5 +151,15 @@ object ProviderFinder {
     } yield {
       buildItems(cr)(pf).toList
     }
+  }
+
+  def extractClasses(p: Provider): List[UsesClass] = p match {
+    case ProvidesClass(_, _, name, _, _, interfaces) => (name :: interfaces) map UsesClass
+    case ProvidesField(_, _, descriptor, _, _)  => {
+      val classAsString = JavaSignatureParser.parse(descriptor).get.toJava 
+      val classAsObject = UsesClass(classAsString)
+      List(classAsObject)
+    } 
+    case _ => List.empty
   }
 }
