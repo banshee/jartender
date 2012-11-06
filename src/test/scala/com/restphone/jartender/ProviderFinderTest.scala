@@ -77,6 +77,12 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
     // These never end up in bytecode
   }
 
+  test("can extract all the methods from a class file") {
+    val tst = buildJartenderSample.head
+    val methods = tst collect { case x : UsesMethod => x } 
+    methods.toSet should be ('snark)
+  }
+  
   test("can analyze nested annotations on a class") {
     val sublists = buildJartenderSample
     val result =
@@ -101,64 +107,55 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
   
   test("can extract classes from ProvidesClass") {
     val pc = ProvidesClass(49,33,"com/restphone/jartender/JartenderSample", null, "java/lang/Object", List("com/restphone/jartender/InterfaceI"))
-    val result = ProviderFinder.extractClasses(pc)
     val expected = Set("com.restphone.jartender.JartenderSample", "com.restphone.jartender.InterfaceI") map UsesClass
-    result should be (expected)
+    pc.usesClasses should be (expected)
   }
 
   test("can extract classes from ProvidesField") {
     val pf = ProvidesField(9, "aStaticStringFieldWithAnnotation", "Ljava/lang/String;", null, null)
-    val result = ProviderFinder.extractClasses(pf)
     val expected = Set("java.lang.String") map UsesClass
-    result should be (expected)
+    pf.usesClasses should be (expected)
   }
 
   test("can extract classes from ProvidesMethod") {
     val pm = ProvidesMethod(1, "aGenericMethod", "(Ljava/lang/Object;)Ljava/lang/String;", Some("<T:Ljava/lang/Object;>(TT;)Ljava/lang/String;"), List("java/lang/RuntimeException"))
-    val result = ProviderFinder.extractClasses(pm)
     val expected = Set("java.lang.String", "java.lang.Object", "java.lang.RuntimeException") map UsesClass
-    result should be (expected)
+    pm.usesClasses should be (expected)
   }
 
   test("can extract classes from UsesAnnotation") {
     val ua = UsesAnnotation("Lcom/restphone/jartender/AnnotationI;", Some(false))
-    val result = ProviderFinder.extractClasses(ua)
     val expected = Set("com.restphone.jartender.AnnotationI") map UsesClass
-    result should be (expected)
+    ua.usesClasses should be (expected)
   }
 
   test("can extract classes from UsesAnnotationEnum") {
     val uae = UsesAnnotationEnum(null, "Lcom/restphone/jartender/AnnotationEnum;", "SAMPLEVALUE1")
-    val result = ProviderFinder.extractClasses(uae)
     val expected = Set("com.restphone.jartender.AnnotationEnum") map UsesClass
-    result should be (expected)
+    uae.usesClasses should be (expected)
   }
 
   test("can extract classes from UsesParameterAnnotation") {
     val pa = UsesParameterAnnotation("Lcom/restphone/jartender/AnnotationI;")
-    val result = ProviderFinder.extractClasses(pa)
     val expected = Set("com.restphone.jartender.AnnotationI") map UsesClass
-    result should be (expected)
+    pa.usesClasses should be (expected)
   }
 
   test("can extract classes from UsesMethod") {
     val um = UsesMethod(182, "com/restphone/jartender/JartenderSampleII", "aGenericMethod", "(Ljava/lang/Object;)Ljava/lang/String;")
-    val result = ProviderFinder.extractClasses(um)
     val expected = Set("com.restphone.jartender.JartenderSampleII", "java.lang.Object", "java.lang.String") map UsesClass
-    result should be (expected)
+    um.usesClasses should be (expected)
   }
 
   test("can extract classes from UsesField") {
     val um = UsesField(178, "java/lang/System", "out", "Ljava/io/PrintStream;")
-    val result = ProviderFinder.extractClasses(um)
     val expected = Set("java.lang.System", "java.io.PrintStream") map UsesClass
-    result should be (expected)
+    um.usesClasses should be (expected)
   }
 
   test("can extract classes from UsesException") {
     val um = UsesException("java/lang/RuntimeException")
-    val result = ProviderFinder.extractClasses(um)
     val expected = Set("java.lang.RuntimeException") map UsesClass
-    result should be (expected)
+    um.usesClasses should be (expected)
   }
 }
