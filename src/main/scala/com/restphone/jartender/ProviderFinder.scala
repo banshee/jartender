@@ -23,7 +23,7 @@ sealed abstract class Provider
 case class ProvidesClass(
   version: Int,
   access: Int,
-  name: String,
+  internalName: String,
   signature: String,
   superName: String,
   interfaces: List[String]) extends Provider {
@@ -79,7 +79,7 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
   override def visit(version: Int, access: Int, name: String, signature: String, superName: String, interfaces: Array[String]) = {
     val cls = ProvidesClass(version = version,
       access = access,
-      name = name,
+      internalName = name,
       signature = signature,
       superName = superName,
       interfaces = interfaces.toList)
@@ -153,13 +153,25 @@ object ProviderFinder {
     }
   }
 
-  def extractClasses(p: Provider): List[UsesClass] = p match {
-    case ProvidesClass(_, _, name, _, _, interfaces) => (name :: interfaces) map UsesClass
-    case ProvidesField(_, _, descriptor, _, _)  => {
-      val classAsString = JavaSignatureParser.parse(descriptor).get.toJava 
-      val classAsObject = UsesClass(classAsString)
-      List(classAsObject)
+  def internalNameToClassName(internalName: String) = internalName.replace('/', '.')
+  
+  def typeDescriptorToUsesClass(descriptor: String) : Set[UsesClass] = JavaSignatureParser.parse(descriptor).get.typesUsed map {_.toJava} map UsesClass
+  def methodDescriptorToUsesClass(descriptor: String) : Set[UsesClass] = JavaSignatureParser.parseMethod(descriptor).get.typesUsed map {_.toJava} map UsesClass
+  def internalNamesToUsesClass(internalNames: Iterable[String]): Set[UsesClass] = internalNames map internalNameToClassName map UsesClass toSet
+  
+  def extractClasses(p: Provider): Set[UsesClass] = p match {
+    case ProvidesClass(_, _, name, _, _, interfaces) => {
+      (name :: interfaces) map internalNameToClassName map UsesClass toSet
     } 
-    case _ => List.empty
+    case ProvidesField(_, _, descriptor, _, _)  => typeDescriptorToUsesClass(descriptor)
+    case ProvidesMethod(_, _, descriptor, _, exceptions) => {
+      val descriptorTypes = methodDescriptorToUsesClass(descriptor)
+      val exceptionTypes = exceptions map internalNameToClassName map UsesClass
+      descriptorTypes ++ exceptionTypes
+    }
+    case UsesAnnotation(d, _) => typeDescriptorToUsesClass(d)
+    case _: UsesAnnotationArray => Set.empty
+    case UsesAnnotationEnum(_, descriptor, _) => typeDescriptorToUsesClass(descriptor)
+    case _ => Set.empty
   }
 }
