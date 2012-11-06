@@ -30,7 +30,7 @@ case class ProvidesClass(
   // Note that interfaces are classes with access bits of ACC_INTERFACE and ACC_ABSTRACT set (0x400, 0x200)
   def field(access: Int, name: String, desc: String, signature: String, value: Object, annotations: List[UsesClass]) = ProvidesField(access, name, desc, signature, value)
   def method(access: Int, name: String, desc: String, signature: String, exceptions: Array[String]) = ProvidesMethod(access, name, desc, Option(signature), exceptions.toList)
-  override def toString = f"ProvidesClass[name=$name,\n interfaces=$interfaces\n]"
+//  override def toString = f"ProvidesClass[name=$name,\n interfaces=$interfaces\n]"
 }
 object ProvidesClass {
   def createProvidesClassMatcher(fn: ProvidesClass => Boolean) = new Object {
@@ -54,7 +54,7 @@ case class ProvidesMethod(
   //  override def toString = f"ProvidesMethod[name=${name} desc=$desc]"
 }
 case class UsesClass(name: String) extends Provider
-case class UsesAnnotation(name: String, visibleAtRuntime: Boolean) extends Provider
+case class UsesAnnotation(name: String, visibleAtRuntime: Option[Boolean]) extends Provider
 case class UsesAnnotationArray(name: String) extends Provider
 case class UsesAnnotationEnum(name: String, desc: String, value: String) extends Provider
 case class UsesParameterAnnotation(name: String) extends Provider
@@ -88,13 +88,13 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
     elements.push(cls)
   }
 
-  val defaultUsesAnnotationGenerator : (String, Boolean) => Provider = { (n, v) => UsesAnnotation(n, v) }
+  val defaultUsesAnnotationGenerator : (String, Option[Boolean]) => Provider = { (n, v) => UsesAnnotation(n, v) }
   
-  def pushAnnotationAndReturnANewVisitor(desc: String, visibleAtRuntime: Boolean, usesGenerator: (String, Boolean) => Provider = { (n, v) => UsesAnnotation(n, v) }): AnnotationVisitor = {
+  def pushAnnotationAndReturnANewVisitor(desc: String, visibleAtRuntime: Option[Boolean], usesGenerator: (String, Option[Boolean]) => Provider = { (n, v) => UsesAnnotation(n, v) }): AnnotationVisitor = {
     elements.push(usesGenerator(desc, visibleAtRuntime))
     new AnnotationVisitor(Opcodes.ASM4) {
       override def visitAnnotation(name: String, desc: String): AnnotationVisitor = pushAnnotationAndReturnANewVisitor(desc, visibleAtRuntime)
-      override def visitArray(name: String) = pushAnnotationAndReturnANewVisitor("", false,  { _ => UsesAnnotationArray(name) })
+      override def visitArray(name: String) = pushAnnotationAndReturnANewVisitor("", None,  { (_, _) => UsesAnnotationArray(name) })
       override def visitEnum(name: String, desc: String, value: String) = elements.push(UsesAnnotationEnum(name, desc, value))
     }
   }
@@ -103,7 +103,7 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
     val f = ProvidesField(access, name, desc, signature, value)
     elements.push(f)
     new FieldVisitor(Opcodes.ASM4) {
-      override def visitAnnotation(desc: String, visible: Boolean) = pushAnnotationAndReturnANewVisitor(desc, visible)
+      override def visitAnnotation(desc: String, visible: Boolean) = pushAnnotationAndReturnANewVisitor(desc, some(visible))
     }
   }
 
@@ -113,10 +113,10 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
 
     new MethodVisitor(Opcodes.ASM4) {
       override def visitAnnotation(desc: String, visible: Boolean) =
-        pushAnnotationAndReturnANewVisitor(desc, visible)
+        pushAnnotationAndReturnANewVisitor(desc, some(visible))
 
       override def visitParameterAnnotation(parameter: Int, desc: String, visible: Boolean) =
-        pushAnnotationAndReturnANewVisitor(desc, visible, UsesParameterAnnotation(_))
+        pushAnnotationAndReturnANewVisitor(desc, some(visible), (name, _) => UsesParameterAnnotation(name))
 
       //     public void visitEnum(String name, String desc, String value) {
 
@@ -134,7 +134,7 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
     }
   }
 
-  override def visitAnnotation(desc: String, visible: Boolean) = pushAnnotationAndReturnANewVisitor(desc, visible)
+  override def visitAnnotation(desc: String, visible: Boolean) = pushAnnotationAndReturnANewVisitor(desc, some(visible))
 }
 
 object ProviderFinder {
