@@ -55,7 +55,7 @@ case class UsesClass(name: String) extends Provider
 case class UsesAnnotation(name: String, visibleAtRuntime: Option[Boolean]) extends Provider
 case class UsesAnnotationArray(name: String) extends Provider
 case class UsesAnnotationEnum(name: String, desc: String, value: String) extends Provider
-case class UsesParameterAnnotation(name: String) extends Provider
+case class UsesParameterAnnotation(descriptor: String) extends Provider
 case class UsesMethod(opcode: Int, owner: String, name: String, desc: String) extends Provider
 case class UsesField(opcode: Int, owner: String, name: String, desc: String) extends Provider
 case class UsesException(exceptionType: String) extends Provider
@@ -161,7 +161,7 @@ object ProviderFinder {
   
   def extractClasses(p: Provider): Set[UsesClass] = p match {
     case ProvidesClass(_, _, name, _, _, interfaces) => {
-      (name :: interfaces) map internalNameToClassName map UsesClass toSet
+      internalNamesToUsesClass(name :: interfaces)
     } 
     case ProvidesField(_, _, descriptor, _, _)  => typeDescriptorToUsesClass(descriptor)
     case ProvidesMethod(_, _, descriptor, _, exceptions) => {
@@ -172,6 +172,8 @@ object ProviderFinder {
     case UsesAnnotation(d, _) => typeDescriptorToUsesClass(d)
     case _: UsesAnnotationArray => Set.empty
     case UsesAnnotationEnum(_, descriptor, _) => typeDescriptorToUsesClass(descriptor)
+    case UsesParameterAnnotation(descriptor) => typeDescriptorToUsesClass(descriptor)
+    case UsesMethod(_, owner, _, desc) => methodDescriptorToUsesClass(desc) ++ internalNamesToUsesClass(List(owner))
     case _ => Set.empty
   }
 }
