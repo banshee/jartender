@@ -22,6 +22,10 @@ case object IsStatic extends ClassModifiers
 sealed abstract class Provider {
   def usesClasses: Set[UsesClass]
 }
+/**
+ * @param interfaces Internal names
+ * @param signature Information for generics
+ */
 case class ProvidesClass(
   version: Int,
   access: Int,
@@ -101,7 +105,8 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
   }
 
   override def visit(version: Int, access: Int, name: String, signature: String, superName: String, interfaces: Array[String]) = {
-    val cls = ProvidesClass(version = version,
+    val cls = ProvidesClass(
+      version = version,
       access = access,
       internalName = name,
       signature = signature,
@@ -177,6 +182,21 @@ object ProviderFinder {
     }
   }
 
+  //     val result: ClassMap = ProviderFinder.buildClassMap(List[pc, pm, pf])
+
+  case class ClassProvides (targetClass : ProvidesClass, provides: Set[Provider])
+  
+  def buildClassMap(xs: List[Provider]) = {
+    val provided = xs filter {
+      case _: ProvidesField | _: ProvidesMethod => true
+      case _ => false
+    }
+    
+    val klass = xs.head.asInstanceOf[ProvidesClass]
+    
+    ClassProvides(klass, provided.toSet)
+  }
+  
   // Internal names have element separated by slashes instead of dots, so just replace them
   def internalNameToClassName(internalName: String) = internalName.replace('/', '.')
 
