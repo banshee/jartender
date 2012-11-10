@@ -157,8 +157,8 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
     val pc = ProvidesClass(49, 33, "com/restphone/jartender/JartenderSample", null, "java/lang/Object", List("com/restphone/jartender/InterfaceI"))
     val pm = ProvidesMethod(1, "aGenericMethod", "(Ljava/lang/Object;)Ljava/lang/String;", Some("<T:Ljava/lang/Object;>(TT;)Ljava/lang/String;"), List("java/lang/RuntimeException"))
     val pf = ProvidesField(9, "aStaticStringFieldWithAnnotation", "Ljava/lang/String;", null, null)
-    val result = ProviderFinder.buildClassMap(List(pc, pf, pm))
-    result.targetClass should be (pc)
+    val result = ProviderFinder.buildProvidedItems(List(pc, pf, pm))
+    result.targetClass should be (pc.javaIdentifier)
     result.provides should be (Set(pm, pf))
   }
 }
