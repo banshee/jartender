@@ -203,7 +203,7 @@ object ProviderFinder {
 
   case class ClassProvides(targetClass: JavaIdentifier, provides: Set[Provider])
 
-  def buildProvidedItems(xs: List[Provider]) = {
+  def buildProvidedItems(xs: List[Provider]) : ClassProvides = {
     val provided = xs filter {
       case _: ProvidesField | _: ProvidesMethod => true
       case _ => false
