@@ -1,14 +1,14 @@
 package com.restphone.jartender
 
-import org.junit.runner.RunWith
 import org.scalatest.FunSuite
 import scalaz.Lens
-import org.junit.runner.RunWith
 import org.scalatest.FunSuite
 import org.scalatest.junit.JUnitRunner
 import scalaz._
 import Scalaz._
 import org.scalatest.matchers.ShouldMatchers
+import java.net.URLClassLoader
+//import org.junit.runner.RunWith
 
 @AnnotationI(a = "i", b = new AnnotationII)
 trait SampleTrait extends SampleTraitII {
@@ -18,10 +18,18 @@ trait SampleTrait extends SampleTraitII {
 
 trait SampleTraitII
 
-@RunWith(classOf[JUnitRunner])
 class ProviderFinderTest extends FunSuite with ShouldMatchers {
+  def printclasspath = {
+    val loader =  ClassLoader.getSystemClassLoader.asInstanceOf[URLClassLoader]
+    val urls = loader.getURLs
+    urls foreach {u => println{u.getFile}}
+  }
+  
   def buildSampleTrait = {
     val name = InternalName("com/restphone/jartender/SampleTrait")
+    println(f"trait is " + classOf[com.restphone.jartender.SampleTrait])
+    println("classpath is")
+    printclasspath
     val xs = ProviderFinder.buildItemsFromClassName(name)
     xs should be('defined)
     listToStreamOfLists(xs.get)
@@ -29,7 +37,7 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
 
   test("can analyze a trait (and traits are interfaces)") {
     val sublists = buildSampleTrait
-    val providesClassWithNameSampleTrait = ProvidesClass.createProvidesClassMatcher(_.internalName == "com/restphone/jartender/SampleTrait")
+    val providesClassWithNameSampleTrait = ProvidesClass.createProvidesClassMatcher(_.internalName.s == "com/restphone/jartender/SampleTrait")
     val result =
       sublists collectFirst { case providesClassWithNameSampleTrait :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
     result should be(some(true))
@@ -93,7 +101,7 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
     methodInSubclass should be(some(true))
   }
 
-  def showResult(name: String, elements: List[Provider]) = {
+  def showResult(name: String, elements: List[ClassfileElement]) = {
     val s = elements.mkString("\n")
     val q = ""
     println(f"Results for $name are\n$s")
