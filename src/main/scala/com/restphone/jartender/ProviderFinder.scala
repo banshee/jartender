@@ -16,7 +16,6 @@ import org.objectweb.asm.Label
 trait IdentifierFlavor extends Any {
   def usesClasses: Set[UsesClass]
 }
-
 case class InternalName(s: String) extends AnyVal with IdentifierFlavor {
   def javaIdentifier = JavaIdentifier(s.replace("/", "."))
   def usesClasses = javaIdentifier.usesClasses
@@ -215,9 +214,10 @@ object ProviderFinder {
     ClassProvides(klass.javaIdentifier, provided.toSet)
   }
 
-  def parseResultUsesClass(fn: { def typesUsed: Set[JavaName] }) = fn.typesUsed map { _.toJava } map JavaIdentifier map UsesClass
+  def convertListOfProviderToUsesClasses(xs: Iterable[IdentifierFlavor]) = xs map { _.usesClasses } reduce (_ ++ _)
+
   def typeDescriptorToUsesClass(descriptor: TypeDescriptor): Set[UsesClass] = parseResultUsesClass(JavaSignatureParser.parse(descriptor.s).get)
   def methodDescriptorToUsesClass(descriptor: MethodDescriptor): Set[UsesClass] = parseResultUsesClass(JavaSignatureParser.parseMethod(descriptor.s).get)
-  def convertListOfProviderToUsesClasses[T <% Provider](xs: Iterable[IdentifierFlavor]) = xs map { _.usesClasses } reduce (_ ++ _)
-  def extractClasses(p: Provider): Set[UsesClass] = p.usesClasses
+  
+  private def parseResultUsesClass(fn: { def typesUsed: Set[JavaName] }) = fn.typesUsed map { _.toJava } map JavaIdentifier map UsesClass
 }
