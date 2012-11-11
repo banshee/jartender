@@ -21,7 +21,7 @@ trait SampleTraitII
 @RunWith(classOf[JUnitRunner])
 class ProviderFinderTest extends FunSuite with ShouldMatchers {
   def buildSampleTrait = {
-    val name = "com/restphone/jartender/SampleTrait"
+    val name = InternalName("com/restphone/jartender/SampleTrait")
     val xs = ProviderFinder.buildItemsFromClassName(name)
     xs should be('defined)
     listToStreamOfLists(xs.get)
@@ -41,10 +41,10 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
   }
 
   def buildJartenderBase = {
-    val name = "com/restphone/jartender/JartenderSample"
+    val name = InternalName("com/restphone/jartender/JartenderSample")
     val xs = ProviderFinder.buildItemsFromClassName(name)
     xs should be('defined)
-    showResult(name, xs.get)
+    showResult(name.s, xs.get)
     xs.get
   }
 
@@ -55,21 +55,21 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
   test("can analyze nested annotations on a field") {
     val sublists = buildJartenderSample
     val result =
-      sublists collectFirst { case ProvidesField(_, "aStaticStringFieldWithAnnotation", _, _, _) :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
+      sublists collectFirst { case ProvidesField(_, InternalName("aStaticStringFieldWithAnnotation"), _, _, _) :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
     result should be(some(true))
   }
 
   test("can analyze nested annotations on a method") {
     val sublists = buildJartenderSample
     val result =
-      sublists collectFirst { case ProvidesMethod(_, "testClassMethod", _, _, _) :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
+      sublists collectFirst { case ProvidesMethod(_, JavaIdentifier("testClassMethod"), _, _, _) :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
     result should be(some(true))
   }
 
   test("can analyze nested annotations on a method parameter") {
     val sublists = buildJartenderSample
     val result =
-      sublists collectFirst { case ProvidesMethod(_, "testClassMethod", _, _, _) :: _ :: _ :: (_: UsesParameterAnnotation) :: (_: UsesAnnotation) :: t => true }
+      sublists collectFirst { case ProvidesMethod(_, JavaIdentifier("testClassMethod"), _, _, _) :: _ :: _ :: (_: UsesParameterAnnotation) :: (_: UsesAnnotation) :: t => true }
     result should be(some(true))
   }
 
@@ -80,16 +80,16 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
   test("can analyze nested annotations on a class") {
     val sublists = buildJartenderSample
     val result =
-      sublists collectFirst { case ProvidesClass(_, _, "com/restphone/jartender/JartenderSample", _, _, _) :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
+      sublists collectFirst { case ProvidesClass(_, _, InternalName("com/restphone/jartender/JartenderSample"), _, _, _) :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
     result should be(some(true))
   }
 
   test("can analyze a subclass") {
-    val name = "com/restphone/jartender/JartenderSample$JartenderSampleSubclass"
+    val name = InternalName("com/restphone/jartender/JartenderSample$JartenderSampleSubclass")
     val xs = ProviderFinder.buildItemsFromClassName(name)
     xs should be('defined)
 
-    val methodInSubclass = xs.get collectFirst { case ProvidesMethod(_, "methodInSubclass", _, _, _) => true }
+    val methodInSubclass = xs.get collectFirst { case ProvidesMethod(_, JavaIdentifier("methodInSubclass"), _, _, _) => true }
     methodInSubclass should be(some(true))
   }
 
@@ -100,63 +100,63 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
   }
 
   test("can extract classes from ProvidesClass") {
-    val pc = ProvidesClass(49, 33, "com/restphone/jartender/JartenderSample", null, "java/lang/Object", List("com/restphone/jartender/InterfaceI"))
-    val expected = Set("com.restphone.jartender.JartenderSample", "com.restphone.jartender.InterfaceI") map UsesClass
+    val pc = ProvidesClass(49, 33, InternalName("com/restphone/jartender/JartenderSample"), null, InternalName("java/lang/Object"), List(InternalName("com/restphone/jartender/InterfaceI")))
+    val expected = Set("com.restphone.jartender.JartenderSample", "com.restphone.jartender.InterfaceI") map {JavaIdentifier(_)} map UsesClass
     pc.usesClasses should be(expected)
   }
 
   test("can extract classes from ProvidesField") {
-    val pf = ProvidesField(9, "aStaticStringFieldWithAnnotation", "Ljava/lang/String;", null, null)
-    val expected = Set("java.lang.String") map UsesClass
+    val pf = ProvidesField(9, InternalName("aStaticStringFieldWithAnnotation"), TypeDescriptor("Ljava/lang/String;"), null, null)
+    val expected = Set("java.lang.String") map {JavaIdentifier(_)} map UsesClass
     pf.usesClasses should be(expected)
   }
 
   test("can extract classes from ProvidesMethod") {
-    val pm = ProvidesMethod(1, "aGenericMethod", "(Ljava/lang/Object;)Ljava/lang/String;", Some("<T:Ljava/lang/Object;>(TT;)Ljava/lang/String;"), List("java/lang/RuntimeException"))
-    val expected = Set("java.lang.String", "java.lang.Object", "java.lang.RuntimeException") map UsesClass
+    val pm = ProvidesMethod(1, JavaIdentifier("aGenericMethod"), MethodDescriptor("(Ljava/lang/Object;)Ljava/lang/String;"), Some(Signature("<T:Ljava/lang/Object;>(TT;)Ljava/lang/String;")), List(InternalName("java/lang/RuntimeException")))
+    val expected = Set("java.lang.String", "java.lang.Object", "java.lang.RuntimeException") map {JavaIdentifier(_)} map UsesClass
     pm.usesClasses should be(expected)
   }
 
   test("can extract classes from UsesAnnotation") {
-    val ua = UsesAnnotation("Lcom/restphone/jartender/AnnotationI;", Some(false))
-    val expected = Set("com.restphone.jartender.AnnotationI") map UsesClass
+    val ua = UsesAnnotation(TypeDescriptor("Lcom/restphone/jartender/AnnotationI;"), some(false))
+    val expected = Set("com.restphone.jartender.AnnotationI") map {JavaIdentifier(_)} map UsesClass
     ua.usesClasses should be(expected)
   }
 
   test("can extract classes from UsesAnnotationEnum") {
-    val uae = UsesAnnotationEnum(null, "Lcom/restphone/jartender/AnnotationEnum;", "SAMPLEVALUE1")
-    val expected = Set("com.restphone.jartender.AnnotationEnum") map UsesClass
+    val uae = UsesAnnotationEnum(null, TypeDescriptor("Lcom/restphone/jartender/AnnotationEnum;"), "SAMPLEVALUE1")
+    val expected = Set("com.restphone.jartender.AnnotationEnum") map {JavaIdentifier(_)} map UsesClass
     uae.usesClasses should be(expected)
   }
 
   test("can extract classes from UsesParameterAnnotation") {
-    val pa = UsesParameterAnnotation("Lcom/restphone/jartender/AnnotationI;")
-    val expected = Set("com.restphone.jartender.AnnotationI") map UsesClass
+    val pa = UsesParameterAnnotation(TypeDescriptor("Lcom/restphone/jartender/AnnotationI;"))
+    val expected = Set("com.restphone.jartender.AnnotationI") map {JavaIdentifier(_)} map UsesClass
     pa.usesClasses should be(expected)
   }
 
   test("can extract classes from UsesMethod") {
-    val um = UsesMethod(182, "com/restphone/jartender/JartenderSampleII", "aGenericMethod", "(Ljava/lang/Object;)Ljava/lang/String;")
-    val expected = Set("com.restphone.jartender.JartenderSampleII", "java.lang.Object", "java.lang.String") map UsesClass
+    val um = UsesMethod(182, InternalName("com/restphone/jartender/JartenderSampleII"), JavaIdentifier("aGenericMethod"), MethodDescriptor("(Ljava/lang/Object;)Ljava/lang/String;"))
+    val expected = Set("com.restphone.jartender.JartenderSampleII", "java.lang.Object", "java.lang.String") map {JavaIdentifier(_)} map UsesClass
     um.usesClasses should be(expected)
   }
 
   test("can extract classes from UsesField") {
-    val um = UsesField(178, "java/lang/System", "out", "Ljava/io/PrintStream;")
-    val expected = Set("java.lang.System", "java.io.PrintStream") map UsesClass
+    val um = UsesField(178, InternalName("java/lang/System"), "out", TypeDescriptor("Ljava/io/PrintStream;"))
+    val expected = Set("java.lang.System", "java.io.PrintStream") map {JavaIdentifier(_)} map UsesClass
     um.usesClasses should be(expected)
   }
 
   test("can extract classes from UsesException") {
-    val um = UsesException("java/lang/RuntimeException")
-    val expected = Set("java.lang.RuntimeException") map UsesClass
+    val um = UsesException(InternalName("java/lang/RuntimeException"))
+    val expected = Set("java.lang.RuntimeException") map {JavaIdentifier(_)} map UsesClass
     um.usesClasses should be(expected)
   }
 
   test("can build map of ProvidesClass => ProvidesMethod and ProvidesField") {
-    val pc = ProvidesClass(49, 33, "com/restphone/jartender/JartenderSample", null, "java/lang/Object", List("com/restphone/jartender/InterfaceI"))
-    val pm = ProvidesMethod(1, "aGenericMethod", "(Ljava/lang/Object;)Ljava/lang/String;", Some("<T:Ljava/lang/Object;>(TT;)Ljava/lang/String;"), List("java/lang/RuntimeException"))
-    val pf = ProvidesField(9, "aStaticStringFieldWithAnnotation", "Ljava/lang/String;", null, null)
+    val pc = ProvidesClass(49, 33, InternalName("com/restphone/jartender/JartenderSample"), null, InternalName("java/lang/Object"), List(InternalName("com/restphone/jartender/InterfaceI")))
+    val pm = ProvidesMethod(1, JavaIdentifier("aGenericMethod"), MethodDescriptor("(Ljava/lang/Object;)Ljava/lang/String;"), Some(Signature("<T:Ljava/lang/Object;>(TT;)Ljava/lang/String;")), List(InternalName("java/lang/RuntimeException")))
+    val pf = ProvidesField(9, InternalName("aStaticStringFieldWithAnnotation"), TypeDescriptor("Ljava/lang/String;"), null, null)
     val result = ProviderFinder.buildProvidedItems(List(pc, pf, pm))
     result.targetClass should be (pc.javaIdentifier)
     result.provides should be (Set(pm, pf))

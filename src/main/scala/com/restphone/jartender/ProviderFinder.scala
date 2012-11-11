@@ -30,7 +30,9 @@ case class TypeDescriptor(s: String) extends AnyVal with IdentifierFlavor {
 case class JavaIdentifier(s: String) extends AnyVal with IdentifierFlavor {
   def usesClasses = Set(UsesClass(this))
 }
-case class Signature(s: String) extends AnyVal with IdentifierFlavor
+case class Signature(s: String) extends AnyVal with IdentifierFlavor {
+  def usesClasses = Set.empty
+}
 object OptionalSignature {
   def apply(s: String) = s match {
     case null => None
@@ -40,6 +42,9 @@ object OptionalSignature {
 trait UsesClassesIsBuiltFromTypeDescriptor {
   def typeDescriptor: TypeDescriptor
   def usesClasses = typeDescriptor.usesClasses
+}
+trait UsesClassesIsTheEmptySet {
+  def usesClasses = Set.empty[UsesClass]
 }
 sealed abstract class Provider {
   def usesClasses: Set[UsesClass]
@@ -90,12 +95,10 @@ case class UsesClass(javaIdentifier: JavaIdentifier) extends Provider {
 
 case class UsesAnnotation(typeDescriptor: TypeDescriptor, visibleAtRuntime: Option[Boolean]) extends Provider with UsesClassesIsBuiltFromTypeDescriptor
 
-case class UsesAnnotationArray(name: String) extends Provider {
-  def usesClasses = Set.empty
-}
+case class UsesAnnotationArray(name: String) extends Provider with UsesClassesIsTheEmptySet
 case class UsesAnnotationEnum(name: Option[String], typeDescriptor: TypeDescriptor, value: String) extends Provider with UsesClassesIsBuiltFromTypeDescriptor
-case class UsesParameterAnnotation(descriptor: TypeDescriptor) extends Provider with UsesClassesIsBuiltFromTypeDescriptor
-case class UsesMethod(opcode: Int, owner: TypeDescriptor, name: String, desc: MethodDescriptor) extends Provider {
+case class UsesParameterAnnotation(typeDescriptor: TypeDescriptor) extends Provider with UsesClassesIsBuiltFromTypeDescriptor
+case class UsesMethod(opcode: Int, owner: InternalName, name: JavaIdentifier, desc: MethodDescriptor) extends Provider {
   def usesClasses = ProviderFinder.convertListOfProviderToUsesClasses(List(desc, owner))
 }
 case class UsesField(opcode: Int, owner: InternalName, name: String, desc: TypeDescriptor) extends Provider {
@@ -135,9 +138,9 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
   def pushAnnotationAndReturnANewVisitor(desc: TypeDescriptor, visibleAtRuntime: Option[Boolean], usesGenerator: (TypeDescriptor, Option[Boolean]) => Provider = { (n, v) => UsesAnnotation(n, v) }): AnnotationVisitor = {
     elements.push(usesGenerator(desc, visibleAtRuntime))
     new AnnotationVisitor(Opcodes.ASM4) {
-      override def visitAnnotation(name: String, desc: TypeDescriptor): AnnotationVisitor = pushAnnotationAndReturnANewVisitor(desc, visibleAtRuntime)
+      override def visitAnnotation(name: String, typeDescriptor: String): AnnotationVisitor = pushAnnotationAndReturnANewVisitor(TypeDescriptor(typeDescriptor), visibleAtRuntime)
       override def visitArray(name: String) = pushAnnotationAndReturnANewVisitor(TypeDescriptor(""), None, { (_, _) => UsesAnnotationArray(name) })
-      override def visitEnum(name: String, desc: TypeDescriptor, value: String) = elements.push(UsesAnnotationEnum(Option(name), desc, value))
+      override def visitEnum(name: String, typeDescriptor: String, value: String) = elements.push(UsesAnnotationEnum(Option(name), TypeDescriptor(typeDescriptor), value))
     }
   }
 
@@ -166,7 +169,7 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
         elements.push(UsesField(opcode, InternalName(owner), name, TypeDescriptor(desc)))
 
       override def visitMethodInsn(opcode: Int, owner: String, name: String, desc: String) =
-        elements.push(UsesMethod(opcode, TypeDescriptor(owner), name, MethodDescriptor(desc)))
+        elements.push(UsesMethod(opcode, InternalName(owner), JavaIdentifier(name), MethodDescriptor(desc)))
 
       override def visitTryCatchBlock(start: Label, end: Label, handler: Label, exceptionType: String) =
         elements.push(UsesException(InternalName(exceptionType)))
@@ -186,8 +189,8 @@ object ProviderFinder {
   }
 
   implicit val standardProviderFinder = ProviderFinder()
-  def buildItemsFromClassName(klass: String, pf: ProviderFinder = ProviderFinder()): Option[List[Provider]] =
-    Some(buildItems(new ClassReader(klass))(pf).toList)
+  def buildItemsFromClassName(klass: InternalName, pf: ProviderFinder = ProviderFinder()): Option[List[Provider]] =
+    Some(buildItems(new ClassReader(klass.s))(pf).toList)
   def buildItemsFromClassFile(filename: String, pf: ProviderFinder = ProviderFinder()): Option[List[Provider]] = {
     for {
       fis <- Option(new FileInputStream(filename))
@@ -199,7 +202,7 @@ object ProviderFinder {
 
   //     val result: ClassMap = ProviderFinder.buildClassMap(List[pc, pm, pf])
 
-  case class ClassProvides(targetClass: String, provides: Set[Provider])
+  case class ClassProvides(targetClass: JavaIdentifier, provides: Set[Provider])
 
   def buildProvidedItems(xs: List[Provider]) = {
     val provided = xs filter {
@@ -209,7 +212,7 @@ object ProviderFinder {
 
     val klass = xs.head.asInstanceOf[ProvidesClass]
 
-    ClassProvides(klass.javaIdentifier.s, provided.toSet)
+    ClassProvides(klass.javaIdentifier, provided.toSet)
   }
 
   def parseResultUsesClass(fn: { def typesUsed: Set[JavaName] }) = fn.typesUsed map { _.toJava } map JavaIdentifier map UsesClass
