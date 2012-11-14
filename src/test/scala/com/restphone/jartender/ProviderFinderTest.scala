@@ -8,15 +8,13 @@ import scalaz._
 import Scalaz._
 import org.scalatest.matchers.ShouldMatchers
 import java.net.URLClassLoader
-//import org.junit.runner.RunWith
 
+trait SampleTraitII
 @AnnotationI(a = "i", b = new AnnotationII)
 trait SampleTrait extends SampleTraitII {
   @AnnotationI(a = "i", b = new AnnotationII)
   def aMethod
 }
-
-trait SampleTraitII
 
 class ProviderFinderTest extends FunSuite with ShouldMatchers {
   def printclasspath = {
