@@ -25,9 +25,9 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
   
   def buildSampleTrait = {
     val name = InternalName("com/restphone/jartender/SampleTrait")
-    println(f"trait is " + classOf[com.restphone.jartender.SampleTrait])
-    println("classpath is")
-    printclasspath
+//    println(f"trait is " + classOf[com.restphone.jartender.SampleTrait])
+//    println("classpath is")
+//    printclasspath
     val xs = ProviderFinder.buildItemsFromClassName(name)
     xs should be('defined)
     listToStreamOfLists(xs.get)
@@ -50,7 +50,6 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
     val name = InternalName("com/restphone/jartender/JartenderSample")
     val xs = ProviderFinder.buildItemsFromClassName(name)
     xs should be('defined)
-    showResult(name.s, xs.get)
     xs.get
   }
 
