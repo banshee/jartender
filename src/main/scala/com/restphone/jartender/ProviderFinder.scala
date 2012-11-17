@@ -1,7 +1,13 @@
 package com.restphone.jartender
 
 import java.io.FileInputStream
+import java.util.jar.JarFile
+
+import scala.Option.option2Iterable
+import scala.actors.Futures.future
+import scala.collection.JavaConverters.enumerationAsScalaIteratorConverter
 import scala.collection.mutable.Stack
+
 import org.objectweb.asm.AnnotationVisitor
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.FieldVisitor
@@ -9,78 +15,8 @@ import org.objectweb.asm.Handle
 import org.objectweb.asm.Label
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
-import scalaz._
-import Scalaz._
-import java.util.jar.JarFile
 
-sealed abstract class ClassfileElement {
-  def usesClasses: Set[UsesClass]
-}
-
-/**
- * @param interfaces Internal names
- * @param signature Information for generics
- */
-case class ProvidesClass(
-  version: Int,
-  access: Int,
-  internalName: InternalName,
-  signature: Option[Signature],
-  superName: InternalName,
-  interfaces: List[InternalName]) extends ClassfileElement {
-  import scalaz._
-  import Scalaz._
-  // Note that interfaces are classes with access bits of ACC_INTERFACE and ACC_ABSTRACT set (0x400, 0x200)
-  //  def field(access: Int, name: String, desc: String, signature: String, value: Object, annotations: List[UsesClass]) = ProvidesField(access, name, desc, Option(signature), value)
-  //  def method(access: Int, name: String, desc: String, signature: String, exceptions: Array[String]) = ProvidesMethod(access, name, desc, Option(signature), exceptions.toList)
-  val javaIdentifier = internalName.javaIdentifier;
-  val internalNames = internalName :: interfaces
-  def usesClasses = ProviderFinder.convert_identifiers_to_UsesClasses(internalName :: interfaces)
-}
-object ProvidesClass {
-  def createProvidesClassMatcher(fn: ProvidesClass => Boolean) = new Object {
-    def unapply(f: ProvidesClass) = fn(f)
-  }
-}
-case class ProvidesField(access: Int, name: InternalName, typeDescriptor: TypeDescriptor, signature: Option[Signature], value: Option[Object]) extends ClassfileElement with UsesClassesIsBuiltFromTypeDescriptor
-object ProvidesField {
-  def createProvidesFieldMatcher(fn: ProvidesField => Boolean) = new Object {
-    def unapply(f: ProvidesField) = fn(f)
-  }
-}
-case class ProvidesMethod(
-  access: Int,
-  name: JavaIdentifier,
-  desc: MethodDescriptor,
-  signature: Option[Signature],
-  exceptions: List[InternalName]) extends ClassfileElement {
-  def usesClasses = ProviderFinder.convert_identifiers_to_UsesClasses(desc :: exceptions)
-}
-case class UsesClass(javaIdentifier: JavaIdentifier) extends ClassfileElement {
-  def usesClasses = Set(this)
-}
-
-case class UsesAnnotation(typeDescriptor: TypeDescriptor, visibleAtRuntime: Option[Boolean]) extends ClassfileElement with UsesClassesIsBuiltFromTypeDescriptor
-case class UsesAnnotationArray(name: String) extends ClassfileElement with UsesClassesIsTheEmptySet
-case class UsesAnnotationEnum(name: Option[String], typeDescriptor: TypeDescriptor, value: String) extends ClassfileElement with UsesClassesIsBuiltFromTypeDescriptor
-case class UsesParameterAnnotation(typeDescriptor: TypeDescriptor) extends ClassfileElement with UsesClassesIsBuiltFromTypeDescriptor
-case class UsesMethod(opcode: Int, owner: InternalName, name: JavaIdentifier, desc: MethodDescriptor) extends ClassfileElement {
-  def usesClasses = ProviderFinder.convert_identifiers_to_UsesClasses(List(desc, owner))
-}
-case class UsesField(opcode: Int, owner: InternalName, name: String, desc: TypeDescriptor) extends ClassfileElement {
-  def usesClasses = ProviderFinder.convert_identifiers_to_UsesClasses(List(desc, owner))
-}
-case class UsesException(exceptionType: InternalName) extends ClassfileElement {
-  def usesClasses = exceptionType.usesClasses
-}
-
-trait UsesClassesIsBuiltFromTypeDescriptor {
-  def typeDescriptor: TypeDescriptor
-  def usesClasses = typeDescriptor.usesClasses
-}
-trait UsesClassesIsTheEmptySet {
-  def usesClasses = Set.empty[UsesClass]
-}
+import scalaz.Scalaz._
 
 case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
   type Elements = List[ClassfileElement]
