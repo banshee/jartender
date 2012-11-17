@@ -6,10 +6,6 @@ sealed abstract class ClassfileElement {
 sealed abstract class ProvidesElement extends ClassfileElement
 sealed abstract class UsesElement extends ClassfileElement
 
-/**
- * @param interfaces Internal names
- * @param signature Information for generics
- */
 case class ProvidesClass(
   version: Int,
   access: Int,
@@ -17,11 +13,7 @@ case class ProvidesClass(
   signature: Option[Signature],
   superName: InternalName,
   interfaces: List[InternalName]) extends ProvidesElement {
-  import scalaz._
-  import Scalaz._
   // Note that interfaces are classes with access bits of ACC_INTERFACE and ACC_ABSTRACT set (0x400, 0x200)
-  //  def field(access: Int, name: String, desc: String, signature: String, value: Object, annotations: List[UsesClass]) = ProvidesField(access, name, desc, Option(signature), value)
-  //  def method(access: Int, name: String, desc: String, signature: String, exceptions: Array[String]) = ProvidesMethod(access, name, desc, Option(signature), exceptions.toList)
   val javaIdentifier = internalName.javaIdentifier;
   val internalNames = internalName :: interfaces
   def usesClasses = DependencyClassVisitor.convert_identifiers_to_UsesClasses(internalName :: interfaces)
@@ -31,7 +23,13 @@ object ProvidesClass {
     def unapply(f: ProvidesClass) = fn(f)
   }
 }
-case class ProvidesField(access: Int, name: InternalName, typeDescriptor: TypeDescriptor, signature: Option[Signature], value: Option[Object]) extends ProvidesElement with UsesClassesIsBuiltFromTypeDescriptor
+case class ProvidesField(
+  klass: JavaIdentifier,
+  access: Int,
+  name: InternalName,
+  typeDescriptor: TypeDescriptor,
+  signature: Option[Signature],
+  value: Option[Object]) extends ProvidesElement with UsesClassesIsBuiltFromTypeDescriptor
 object ProvidesField {
   def createProvidesFieldMatcher(fn: ProvidesField => Boolean) = new Object {
     def unapply(f: ProvidesField) = fn(f)

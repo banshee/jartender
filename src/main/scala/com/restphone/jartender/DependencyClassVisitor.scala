@@ -21,6 +21,8 @@ import scalaz.Scalaz._
 case class DependencyClassVisitor extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
   type Elements = List[ClassfileElement]
 
+  private var currentClassname: JavaIdentifier = JavaIdentifier("none") 
+  
   def asString(elements: Elements) = {
     elements.mkString("\n")
   }
@@ -43,6 +45,7 @@ case class DependencyClassVisitor extends org.objectweb.asm.ClassVisitor(Opcodes
       superName = InternalName(superName),
       interfaces = nullToEmptyList(interfaces) map InternalName)
     elements.push(cls)
+    currentClassname = cls.javaIdentifier
   }
 
   def pushAnnotationAndReturnANewVisitor(desc: TypeDescriptor, visibleAtRuntime: Option[Boolean], usesGenerator: (TypeDescriptor, Option[Boolean]) => ClassfileElement = { (n, v) => UsesAnnotation(n, v) }): AnnotationVisitor = {
@@ -55,7 +58,7 @@ case class DependencyClassVisitor extends org.objectweb.asm.ClassVisitor(Opcodes
   }
 
   override def visitField(access: Int, name: String, desc: String, signature: String, value: Object) = {
-    val f = ProvidesField(access, InternalName(name), TypeDescriptor(desc), OptionalSignature(signature), Option(value))
+    val f = ProvidesField(currentClassname, access, InternalName(name), TypeDescriptor(desc), OptionalSignature(signature), Option(value))
     elements.push(f)
     new FieldVisitor(Opcodes.ASM4) {
       override def visitAnnotation(desc: String, visible: Boolean) = pushAnnotationAndReturnANewVisitor(TypeDescriptor(desc), some(visible))
