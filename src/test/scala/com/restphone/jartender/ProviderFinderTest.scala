@@ -29,7 +29,7 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
     //    println(f"trait is " + classOf[com.restphone.jartender.SampleTrait])
     //    println("classpath is")
     //    printclasspath
-    val xs = ClassfileSupport.buildItemsFromClassName(name)
+    val xs = DependencyAnalyser.buildItemsFromClassName(name)
     xs should be('defined)
     listToStreamOfLists(xs.get)
   }
@@ -48,14 +48,14 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
   }
 
   test("bigtest") {
-    //    val a = ClassfileSupport.buildItemsFromJarfile(new JarFile("/users/james/.ivy2/cache/org.scalaz/scalaz-core_2.10.0-SNAPSHOT/bundles/scalaz-core_2.10.0-SNAPSHOT-7.0-SNAPSHOT.jar"))
-    val a = ClassfileSupport.buildItemsFromJarfile(new JarFile("/tmp/scala-library.jar"))
+    //    val a = DependencyAnalyser.buildItemsFromJarfile(new JarFile("/users/james/.ivy2/cache/org.scalaz/scalaz-core_2.10.0-SNAPSHOT/bundles/scalaz-core_2.10.0-SNAPSHOT-7.0-SNAPSHOT.jar"))
+    val a = DependencyAnalyser.buildItemsFromJarfile(new JarFile("/tmp/scala-library.jar"))
     a.toList
   }
 
   def buildJartenderBase = {
     val name = InternalName("com/restphone/jartender/JartenderSample")
-    val xs = ClassfileSupport.buildItemsFromClassName(name)
+    val xs = DependencyAnalyser.buildItemsFromClassName(name)
     xs should be('defined)
     xs.get
   }
@@ -98,7 +98,7 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
 
   test("can analyze a subclass") {
     val name = InternalName("com/restphone/jartender/JartenderSample$JartenderSampleSubclass")
-    val xs = ClassfileSupport.buildItemsFromClassName(name)
+    val xs = DependencyAnalyser.buildItemsFromClassName(name)
     xs should be('defined)
 
     val methodInSubclass = xs.get collectFirst { case ProvidesMethod(_, JavaIdentifier("methodInSubclass"), _, _, _) => true }

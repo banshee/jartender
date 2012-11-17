@@ -92,40 +92,6 @@ case class DependencyClassVisitor extends org.objectweb.asm.ClassVisitor(Opcodes
   override def visitAnnotation(desc: String, visible: Boolean) = pushAnnotationAndReturnANewVisitor(TypeDescriptor(desc), some(visible))
 }
 
-object ClassfileSupport {
-  def buildItems(cr: ClassReader)(pf: DependencyClassVisitor) = {
-    cr.accept(pf, 0)
-    pf.getProvidedElements
-  }
-
-  def buildItemsFromClassName(klass: InternalName, pf: DependencyClassVisitor = DependencyClassVisitor()): Option[List[ClassfileElement]] = {
-    Some(buildItems(new ClassReader(klass.s))(pf).toList)
-  }
-
-  def buildItemsFromClassFile(filename: String, pf: DependencyClassVisitor = DependencyClassVisitor()): Option[List[ClassfileElement]] = {
-    for {
-      fis <- Option(new FileInputStream(filename))
-      cr <- Option(new ClassReader(fis))
-    } yield {
-      buildItems(cr)(pf).toList
-    }
-  }
-
-  def buildItemsFromJarfile(j: JarFile) = {
-    import scala.collection.JavaConverters._
-    import scala.actors.Futures._
-    for {
-      entry <- j.entries().asScala if (entry.getName().toLowerCase().endsWith(".class"))
-      inputStream <- some(j.getInputStream(entry))
-      cr = new ClassReader(inputStream)
-      result = future {
-        buildItems(cr)(DependencyClassVisitor())
-      }
-    } yield result
-  }
-
-}
-
 object DependencyClassVisitor {
   case class ClassProvides(targetClass: JavaIdentifier, provides: Set[ClassfileElement])
 
