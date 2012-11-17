@@ -1,9 +1,7 @@
 package com.restphone.jartender
 
 import java.io.FileInputStream
-
 import scala.collection.mutable.Stack
-
 import org.objectweb.asm.AnnotationVisitor
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.FieldVisitor
@@ -11,46 +9,9 @@ import org.objectweb.asm.Handle
 import org.objectweb.asm.Label
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
-
 import scalaz._
 import Scalaz._
-
-/**
- * IdentifierFlavor is the parent of method descriptors, type descriptors, java identifiers and signatures
- */
-trait IdentifierFlavor extends Any {
-  def usesClasses: Set[UsesClass]
-}
-case class InternalName(s: String) extends AnyVal with IdentifierFlavor {
-  def javaIdentifier = JavaIdentifier(s.replace("/", "."))
-  def usesClasses = javaIdentifier.usesClasses
-}
-case class MethodDescriptor(s: String) extends AnyVal with IdentifierFlavor {
-  def usesClasses = ProviderFinder.methodDescriptorToUsesClass(this)
-}
-case class TypeDescriptor(s: String) extends AnyVal with IdentifierFlavor {
-  def usesClasses = ProviderFinder.typeDescriptorToUsesClass(this)
-}
-case class JavaIdentifier(s: String) extends AnyVal with IdentifierFlavor {
-  def usesClasses = Set(UsesClass(this))
-}
-case class Signature(s: String) extends AnyVal with IdentifierFlavor {
-  def usesClasses = Set.empty
-}
-object OptionalSignature {
-  def apply(s: String) = s match {
-    case null => None
-    case s => some(Signature(s))
-  }
-}
-
-trait UsesClassesIsBuiltFromTypeDescriptor {
-  def typeDescriptor: TypeDescriptor
-  def usesClasses = typeDescriptor.usesClasses
-}
-trait UsesClassesIsTheEmptySet {
-  def usesClasses = Set.empty[UsesClass]
-}
+import java.util.jar.JarFile
 
 sealed abstract class ClassfileElement {
   def usesClasses: Set[UsesClass]
@@ -100,7 +61,6 @@ case class UsesClass(javaIdentifier: JavaIdentifier) extends ClassfileElement {
 }
 
 case class UsesAnnotation(typeDescriptor: TypeDescriptor, visibleAtRuntime: Option[Boolean]) extends ClassfileElement with UsesClassesIsBuiltFromTypeDescriptor
-
 case class UsesAnnotationArray(name: String) extends ClassfileElement with UsesClassesIsTheEmptySet
 case class UsesAnnotationEnum(name: Option[String], typeDescriptor: TypeDescriptor, value: String) extends ClassfileElement with UsesClassesIsBuiltFromTypeDescriptor
 case class UsesParameterAnnotation(typeDescriptor: TypeDescriptor) extends ClassfileElement with UsesClassesIsBuiltFromTypeDescriptor
@@ -112,6 +72,14 @@ case class UsesField(opcode: Int, owner: InternalName, name: String, desc: TypeD
 }
 case class UsesException(exceptionType: InternalName) extends ClassfileElement {
   def usesClasses = exceptionType.usesClasses
+}
+
+trait UsesClassesIsBuiltFromTypeDescriptor {
+  def typeDescriptor: TypeDescriptor
+  def usesClasses = typeDescriptor.usesClasses
+}
+trait UsesClassesIsTheEmptySet {
+  def usesClasses = Set.empty[UsesClass]
 }
 
 case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
@@ -188,7 +156,7 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
   override def visitAnnotation(desc: String, visible: Boolean) = pushAnnotationAndReturnANewVisitor(TypeDescriptor(desc), some(visible))
 }
 
-object ProviderFinder {
+object ClassfileSupport {
   def buildItems(cr: ClassReader)(pf: ProviderFinder) = {
     cr.accept(pf, 0)
     pf.getProvidedElements
@@ -207,6 +175,22 @@ object ProviderFinder {
     }
   }
 
+  def buildItemsFromJarfile(j: JarFile) = {
+    import scala.collection.JavaConverters._
+    import scala.actors.Futures._
+    for {
+      entry <- j.entries().asScala if (entry.getName().toLowerCase().endsWith(".class"))
+      inputStream <- some(j.getInputStream(entry))
+      cr = new ClassReader(inputStream)
+      result = future {
+        buildItems(cr)(ProviderFinder())
+      }
+    } yield result
+  }
+
+}
+
+object ProviderFinder {
   case class ClassProvides(targetClass: JavaIdentifier, provides: Set[ClassfileElement])
 
   def buildProvidedItems(xs: List[ClassfileElement]): ClassProvides = {
@@ -214,8 +198,8 @@ object ProviderFinder {
     def is_ProvidesMethod: PartialFunction[ClassfileElement, ClassfileElement] = { case x: ProvidesMethod => x }
 
     val provided = xs collect {
-       case x: ProvidesField => x 
-       case x: ProvidesMethod => x
+      case x: ProvidesField => x
+      case x: ProvidesMethod => x
     }
 
     val klass = xs.head.asInstanceOf[ProvidesClass]

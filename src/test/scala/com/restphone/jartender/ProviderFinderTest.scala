@@ -8,6 +8,7 @@ import scalaz._
 import Scalaz._
 import org.scalatest.matchers.ShouldMatchers
 import java.net.URLClassLoader
+import java.util.jar.JarFile
 
 trait SampleTraitII
 @AnnotationI(a = "i", b = new AnnotationII)
@@ -18,17 +19,17 @@ trait SampleTrait extends SampleTraitII {
 
 class ProviderFinderTest extends FunSuite with ShouldMatchers {
   def printclasspath = {
-    val loader =  ClassLoader.getSystemClassLoader.asInstanceOf[URLClassLoader]
+    val loader = ClassLoader.getSystemClassLoader.asInstanceOf[URLClassLoader]
     val urls = loader.getURLs
-    urls foreach {u => println{u.getFile}}
+    urls foreach { u => println { u.getFile } }
   }
-  
+
   def buildSampleTrait = {
     val name = InternalName("com/restphone/jartender/SampleTrait")
-//    println(f"trait is " + classOf[com.restphone.jartender.SampleTrait])
-//    println("classpath is")
-//    printclasspath
-    val xs = ProviderFinder.buildItemsFromClassName(name)
+    //    println(f"trait is " + classOf[com.restphone.jartender.SampleTrait])
+    //    println("classpath is")
+    //    printclasspath
+    val xs = ClassfileSupport.buildItemsFromClassName(name)
     xs should be('defined)
     listToStreamOfLists(xs.get)
   }
@@ -46,9 +47,15 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
     case Nil => Stream.empty
   }
 
+  test("bigtest") {
+    //    val a = ClassfileSupport.buildItemsFromJarfile(new JarFile("/users/james/.ivy2/cache/org.scalaz/scalaz-core_2.10.0-SNAPSHOT/bundles/scalaz-core_2.10.0-SNAPSHOT-7.0-SNAPSHOT.jar"))
+    val a = ClassfileSupport.buildItemsFromJarfile(new JarFile("/tmp/scala-library.jar"))
+    a.toList
+  }
+
   def buildJartenderBase = {
     val name = InternalName("com/restphone/jartender/JartenderSample")
-    val xs = ProviderFinder.buildItemsFromClassName(name)
+    val xs = ClassfileSupport.buildItemsFromClassName(name)
     xs should be('defined)
     xs.get
   }
@@ -91,7 +98,7 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
 
   test("can analyze a subclass") {
     val name = InternalName("com/restphone/jartender/JartenderSample$JartenderSampleSubclass")
-    val xs = ProviderFinder.buildItemsFromClassName(name)
+    val xs = ClassfileSupport.buildItemsFromClassName(name)
     xs should be('defined)
 
     val methodInSubclass = xs.get collectFirst { case ProvidesMethod(_, JavaIdentifier("methodInSubclass"), _, _, _) => true }
@@ -106,49 +113,49 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
 
   test("can extract classes from ProvidesClass") {
     val pc = ProvidesClass(49, 33, InternalName("com/restphone/jartender/JartenderSample"), null, InternalName("java/lang/Object"), List(InternalName("com/restphone/jartender/InterfaceI")))
-    val expected = Set("com.restphone.jartender.JartenderSample", "com.restphone.jartender.InterfaceI")  map JavaIdentifier map UsesClass
+    val expected = Set("com.restphone.jartender.JartenderSample", "com.restphone.jartender.InterfaceI") map JavaIdentifier map UsesClass
     pc.usesClasses should be(expected)
   }
 
   test("can extract classes from ProvidesField") {
     val pf = ProvidesField(9, InternalName("aStaticStringFieldWithAnnotation"), TypeDescriptor("Ljava/lang/String;"), null, null)
-    val expected = Set("java.lang.String")  map JavaIdentifier map UsesClass
+    val expected = Set("java.lang.String") map JavaIdentifier map UsesClass
     pf.usesClasses should be(expected)
   }
 
   test("can extract classes from ProvidesMethod") {
     val pm = ProvidesMethod(1, JavaIdentifier("aGenericMethod"), MethodDescriptor("(Ljava/lang/Object;)Ljava/lang/String;"), Some(Signature("<T:Ljava/lang/Object;>(TT;)Ljava/lang/String;")), List(InternalName("java/lang/RuntimeException")))
-    val expected = Set("java.lang.String", "java.lang.Object", "java.lang.RuntimeException")  map JavaIdentifier map UsesClass
+    val expected = Set("java.lang.String", "java.lang.Object", "java.lang.RuntimeException") map JavaIdentifier map UsesClass
     pm.usesClasses should be(expected)
   }
 
   test("can extract classes from UsesAnnotation") {
     val ua = UsesAnnotation(TypeDescriptor("Lcom/restphone/jartender/AnnotationI;"), some(false))
-    val expected = Set("com.restphone.jartender.AnnotationI")  map JavaIdentifier map UsesClass
+    val expected = Set("com.restphone.jartender.AnnotationI") map JavaIdentifier map UsesClass
     ua.usesClasses should be(expected)
   }
 
   test("can extract classes from UsesAnnotationEnum") {
     val uae = UsesAnnotationEnum(null, TypeDescriptor("Lcom/restphone/jartender/AnnotationEnum;"), "SAMPLEVALUE1")
-    val expected = Set("com.restphone.jartender.AnnotationEnum")  map JavaIdentifier map UsesClass
+    val expected = Set("com.restphone.jartender.AnnotationEnum") map JavaIdentifier map UsesClass
     uae.usesClasses should be(expected)
   }
 
   test("can extract classes from UsesParameterAnnotation") {
     val pa = UsesParameterAnnotation(TypeDescriptor("Lcom/restphone/jartender/AnnotationI;"))
-    val expected = Set("com.restphone.jartender.AnnotationI")  map JavaIdentifier map UsesClass
+    val expected = Set("com.restphone.jartender.AnnotationI") map JavaIdentifier map UsesClass
     pa.usesClasses should be(expected)
   }
 
   test("can extract classes from UsesMethod") {
     val um = UsesMethod(182, InternalName("com/restphone/jartender/JartenderSampleII"), JavaIdentifier("aGenericMethod"), MethodDescriptor("(Ljava/lang/Object;)Ljava/lang/String;"))
-    val expected = Set("com.restphone.jartender.JartenderSampleII", "java.lang.Object", "java.lang.String")  map JavaIdentifier map UsesClass
+    val expected = Set("com.restphone.jartender.JartenderSampleII", "java.lang.Object", "java.lang.String") map JavaIdentifier map UsesClass
     um.usesClasses should be(expected)
   }
 
   test("can extract classes from UsesField") {
     val um = UsesField(178, InternalName("java/lang/System"), "out", TypeDescriptor("Ljava/io/PrintStream;"))
-    val expected = Set("java.lang.System", "java.io.PrintStream")  map JavaIdentifier map UsesClass
+    val expected = Set("java.lang.System", "java.io.PrintStream") map JavaIdentifier map UsesClass
     um.usesClasses should be(expected)
   }
 
@@ -163,8 +170,8 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
     val pm = ProvidesMethod(1, JavaIdentifier("aGenericMethod"), MethodDescriptor("(Ljava/lang/Object;)Ljava/lang/String;"), Some(Signature("<T:Ljava/lang/Object;>(TT;)Ljava/lang/String;")), List(InternalName("java/lang/RuntimeException")))
     val pf = ProvidesField(9, InternalName("aStaticStringFieldWithAnnotation"), TypeDescriptor("Ljava/lang/String;"), null, null)
     val result = ProviderFinder.buildProvidedItems(List(pc, pf, pm))
-    result.targetClass should be (pc.javaIdentifier)
-    result.provides should be (Set(pm, pf))
+    result.targetClass should be(pc.javaIdentifier)
+    result.provides should be(Set(pm, pf))
   }
 }
 
