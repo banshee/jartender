@@ -31,13 +31,20 @@ object ProvidesClass {
     def unapply(f: ProvidesClass) = fn(f)
   }
 }
-case class ProvidesField(access: Int, name: InternalName, typeDescriptor: TypeDescriptor, signature: Option[Signature], value: Option[Object]) extends ProvidesElement with UsesClassesIsBuiltFromTypeDescriptor
+case class ProvidesField(
+  klassname: InternalName,
+  access: Int,
+  name: InternalName,
+  typeDescriptor: TypeDescriptor,
+  signature: Option[Signature],
+  value: Option[Object]) extends ProvidesElement with UsesClassesIsBuiltFromTypeDescriptor
 object ProvidesField {
   def createProvidesFieldMatcher(fn: ProvidesField => Boolean) = new Object {
     def unapply(f: ProvidesField) = fn(f)
   }
 }
 case class ProvidesMethod(
+  klassname: InternalName,
   access: Int,
   name: JavaIdentifier,
   desc: MethodDescriptor,
