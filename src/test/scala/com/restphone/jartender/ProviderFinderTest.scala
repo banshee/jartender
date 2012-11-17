@@ -67,7 +67,7 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
   test("can analyze nested annotations on a field") {
     val sublists = buildJartenderSample
     val result =
-      sublists collectFirst { case ProvidesField(_, _, InternalName("aStaticStringFieldWithAnnotation"), _, _, _) :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
+      sublists collectFirst { case ProvidesField(_, InternalName("aStaticStringFieldWithAnnotation"), _, _, _) :: (_: UsesAnnotation) :: (_: UsesAnnotation) :: t => true }
     result should be(some(true))
   }
 
@@ -118,7 +118,7 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
   }
 
   test("can extract classes from ProvidesField") {
-    val pf = ProvidesField(JavaIdentifier("com.restphone.Testing"), 9, InternalName("aStaticStringFieldWithAnnotation"), TypeDescriptor("Ljava/lang/String;"), null, null)
+    val pf = ProvidesField(9, InternalName("aStaticStringFieldWithAnnotation"), TypeDescriptor("Ljava/lang/String;"), null, null)
     val expected = Set("java.lang.String") map JavaIdentifier map UsesClass
     pf.usesClasses should be(expected)
   }
@@ -168,7 +168,7 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
   test("can build map of ProvidesClass => ProvidesMethod and ProvidesField") {
     val pc = ProvidesClass(49, 33, InternalName("com/restphone/jartender/JartenderSample"), null, InternalName("java/lang/Object"), List(InternalName("com/restphone/jartender/InterfaceI")))
     val pm = ProvidesMethod(1, JavaIdentifier("aGenericMethod"), MethodDescriptor("(Ljava/lang/Object;)Ljava/lang/String;"), Some(Signature("<T:Ljava/lang/Object;>(TT;)Ljava/lang/String;")), List(InternalName("java/lang/RuntimeException")))
-    val pf = ProvidesField(JavaIdentifier("com.restphone.Testing"), 9, InternalName("aStaticStringFieldWithAnnotation"), TypeDescriptor("Ljava/lang/String;"), null, null)
+    val pf = ProvidesField(9, InternalName("aStaticStringFieldWithAnnotation"), TypeDescriptor("Ljava/lang/String;"), null, null)
     val result = DependencyClassVisitor.buildProvidedItems(List(pc, pf, pm))
     result.targetClass should be(pc.javaIdentifier)
     result.provides should be(Set(pm, pf))
