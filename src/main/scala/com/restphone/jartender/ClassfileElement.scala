@@ -24,7 +24,7 @@ case class ProvidesClass(
   //  def method(access: Int, name: String, desc: String, signature: String, exceptions: Array[String]) = ProvidesMethod(access, name, desc, Option(signature), exceptions.toList)
   val javaIdentifier = internalName.javaIdentifier;
   val internalNames = internalName :: interfaces
-  def usesClasses = ProviderFinder.convert_identifiers_to_UsesClasses(internalName :: interfaces)
+  def usesClasses = DependencyClassVisitor.convert_identifiers_to_UsesClasses(internalName :: interfaces)
 }
 object ProvidesClass {
   def createProvidesClassMatcher(fn: ProvidesClass => Boolean) = new Object {
@@ -43,7 +43,7 @@ case class ProvidesMethod(
   desc: MethodDescriptor,
   signature: Option[Signature],
   exceptions: List[InternalName]) extends ProvidesElement {
-  def usesClasses = ProviderFinder.convert_identifiers_to_UsesClasses(desc :: exceptions)
+  def usesClasses = DependencyClassVisitor.convert_identifiers_to_UsesClasses(desc :: exceptions)
 }
 case class UsesClass(javaIdentifier: JavaIdentifier) extends UsesElement {
   def usesClasses = Set(this)
@@ -54,10 +54,10 @@ case class UsesAnnotationArray(name: String) extends UsesElement with UsesClasse
 case class UsesAnnotationEnum(name: Option[String], typeDescriptor: TypeDescriptor, value: String) extends UsesElement with UsesClassesIsBuiltFromTypeDescriptor
 case class UsesParameterAnnotation(typeDescriptor: TypeDescriptor) extends UsesElement with UsesClassesIsBuiltFromTypeDescriptor
 case class UsesMethod(opcode: Int, owner: InternalName, name: JavaIdentifier, desc: MethodDescriptor) extends UsesElement {
-  def usesClasses = ProviderFinder.convert_identifiers_to_UsesClasses(List(desc, owner))
+  def usesClasses = DependencyClassVisitor.convert_identifiers_to_UsesClasses(List(desc, owner))
 }
 case class UsesField(opcode: Int, owner: InternalName, name: String, desc: TypeDescriptor) extends UsesElement {
-  def usesClasses = ProviderFinder.convert_identifiers_to_UsesClasses(List(desc, owner))
+  def usesClasses = DependencyClassVisitor.convert_identifiers_to_UsesClasses(List(desc, owner))
 }
 case class UsesException(exceptionType: InternalName) extends UsesElement {
   def usesClasses = exceptionType.usesClasses

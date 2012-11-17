@@ -14,10 +14,10 @@ case class InternalName(s: String) extends AnyVal with IdentifierFlavor {
   def usesClasses = javaIdentifier.usesClasses
 }
 case class MethodDescriptor(s: String) extends AnyVal with IdentifierFlavor {
-  def usesClasses = ProviderFinder.methodDescriptorToUsesClass(this)
+  def usesClasses = DependencyClassVisitor.methodDescriptorToUsesClass(this)
 }
 case class TypeDescriptor(s: String) extends AnyVal with IdentifierFlavor {
-  def usesClasses = ProviderFinder.typeDescriptorToUsesClass(this)
+  def usesClasses = DependencyClassVisitor.typeDescriptorToUsesClass(this)
 }
 case class JavaIdentifier(s: String) extends AnyVal with IdentifierFlavor {
   def usesClasses = Set(UsesClass(this))

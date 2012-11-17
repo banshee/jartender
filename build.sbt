@@ -22,6 +22,7 @@ transitiveClassifiers := Seq("sources")
 
 libraryDependencies ++= Seq(
   "com.restphone" % "javasignatureparser_2.10" % "0.3-SNAPSHOT",
+  "org.scala-lang" % "scala-actors" % "2.10.0-SNAPSHOT",
   "org.scalaz" % "scalaz-concurrent_2.10.0-SNAPSHOT" % "7.0-SNAPSHOT",
   "org.scalaz" % "scalaz-concurrent_2.10.0-SNAPSHOT" % "7.0-SNAPSHOT" % "sources",
   "com.google.guava" % "guava" % "13.0.1",

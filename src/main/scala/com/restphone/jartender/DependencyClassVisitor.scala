@@ -18,7 +18,7 @@ import org.objectweb.asm.Opcodes
 
 import scalaz.Scalaz._
 
-case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
+case class DependencyClassVisitor extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
   type Elements = List[ClassfileElement]
 
   def asString(elements: Elements) = {
@@ -93,16 +93,16 @@ case class ProviderFinder extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
 }
 
 object ClassfileSupport {
-  def buildItems(cr: ClassReader)(pf: ProviderFinder) = {
+  def buildItems(cr: ClassReader)(pf: DependencyClassVisitor) = {
     cr.accept(pf, 0)
     pf.getProvidedElements
   }
 
-  def buildItemsFromClassName(klass: InternalName, pf: ProviderFinder = ProviderFinder()): Option[List[ClassfileElement]] = {
+  def buildItemsFromClassName(klass: InternalName, pf: DependencyClassVisitor = DependencyClassVisitor()): Option[List[ClassfileElement]] = {
     Some(buildItems(new ClassReader(klass.s))(pf).toList)
   }
 
-  def buildItemsFromClassFile(filename: String, pf: ProviderFinder = ProviderFinder()): Option[List[ClassfileElement]] = {
+  def buildItemsFromClassFile(filename: String, pf: DependencyClassVisitor = DependencyClassVisitor()): Option[List[ClassfileElement]] = {
     for {
       fis <- Option(new FileInputStream(filename))
       cr <- Option(new ClassReader(fis))
@@ -119,14 +119,14 @@ object ClassfileSupport {
       inputStream <- some(j.getInputStream(entry))
       cr = new ClassReader(inputStream)
       result = future {
-        buildItems(cr)(ProviderFinder())
+        buildItems(cr)(DependencyClassVisitor())
       }
     } yield result
   }
 
 }
 
-object ProviderFinder {
+object DependencyClassVisitor {
   case class ClassProvides(targetClass: JavaIdentifier, provides: Set[ClassfileElement])
 
   def buildProvidedItems(xs: List[ClassfileElement]): ClassProvides = {
