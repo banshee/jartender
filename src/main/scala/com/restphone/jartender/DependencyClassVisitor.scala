@@ -79,10 +79,10 @@ case class DependencyClassVisitor extends org.objectweb.asm.ClassVisitor(Opcodes
       //     public void visitEnum(String name, String desc, String value) {
 
       override def visitFieldInsn(opcode: Int, owner: String, name: String, desc: String) =
-        elements.push(UsesField(opcode, InternalName(owner), name, TypeDescriptor(desc)))
+        elements.push(UsesField(InternalName(owner), name, TypeDescriptor(desc)))
 
       override def visitMethodInsn(opcode: Int, owner: String, name: String, desc: String) =
-        elements.push(UsesMethod(opcode, InternalName(owner), JavaIdentifier(name), MethodDescriptor(desc)))
+        elements.push(UsesMethod(InternalName(owner), JavaIdentifier(name), MethodDescriptor(desc)))
 
       override def visitTryCatchBlock(start: Label, end: Label, handler: Label, exceptionType: String) =
         elements.push(UsesException(InternalName(exceptionType)))
