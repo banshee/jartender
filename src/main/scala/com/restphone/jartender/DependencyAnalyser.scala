@@ -43,4 +43,11 @@ object DependencyAnalyser {
       }
     } yield result
   }
+
+  def buildMatchingDependencies(providers: Set[ProvidesElement], users: Set[UsesElement]): Set[UsesElement] = {
+    val classesProvidedTransformedToTheirEquivalentUsesElement = providers map { _.matchAgainst }
+    val classesUsed = users flatMap {_.usesClasses}
+    println("cx: " + classesProvidedTransformedToTheirEquivalentUsesElement)
+    users & classesProvidedTransformedToTheirEquivalentUsesElement
+  }
 }

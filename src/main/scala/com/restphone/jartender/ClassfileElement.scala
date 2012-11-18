@@ -3,8 +3,12 @@ package com.restphone.jartender
 sealed abstract class ClassfileElement {
   def usesClasses: Set[UsesClass]
 }
-sealed abstract class ProvidesElement extends ClassfileElement
-sealed abstract class UsesElement extends ClassfileElement
+sealed abstract class ProvidesElement extends ClassfileElement {
+  def matchAgainst: UsesElement
+}
+sealed abstract class UsesElement extends ClassfileElement {
+    def usesClasses: Set[UsesClass]
+}
 
 /**
  * @param interfaces Internal names

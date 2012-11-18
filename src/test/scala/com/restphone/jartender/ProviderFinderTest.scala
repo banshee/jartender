@@ -26,9 +26,6 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
 
   def buildSampleTrait = {
     val name = InternalName("com/restphone/jartender/SampleTrait")
-    //    println(f"trait is " + classOf[com.restphone.jartender.SampleTrait])
-    //    println("classpath is")
-    //    printclasspath
     val xs = DependencyAnalyser.buildItemsFromClassName(name)
     xs should be('defined)
     listToStreamOfLists(xs.get)
@@ -47,11 +44,11 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
     case Nil => Stream.empty
   }
 
-  test("bigtest") {
-    //    val a = DependencyAnalyser.buildItemsFromJarfile(new JarFile("/users/james/.ivy2/cache/org.scalaz/scalaz-core_2.10.0-SNAPSHOT/bundles/scalaz-core_2.10.0-SNAPSHOT-7.0-SNAPSHOT.jar"))
-    val a = DependencyAnalyser.buildItemsFromJarfile(new JarFile("/tmp/scala-library.jar"))
-    a.toList
-  }
+//  test("bigtest") {
+//    //    val a = DependencyAnalyser.buildItemsFromJarfile(new JarFile("/users/james/.ivy2/cache/org.scalaz/scalaz-core_2.10.0-SNAPSHOT/bundles/scalaz-core_2.10.0-SNAPSHOT-7.0-SNAPSHOT.jar"))
+//    val a = DependencyAnalyser.buildItemsFromJarfile(new JarFile("/tmp/scala-library.jar"))
+//    a.toList
+//  }
 
   def buildJartenderBase = {
     val name = InternalName("com/restphone/jartender/JartenderSample")
@@ -173,5 +170,16 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
     result.targetClass should be(pc.javaIdentifier)
     result.provides should be(Set(pm, pf))
   }
-}
+  
+  test("can put together a list of relevant dependencies given a set of providers and a set of users") {
+    val pc = ProvidesClass(49, 33, InternalName("com/restphone/jartender/JartenderSample"), null, InternalName("java/lang/Object"), List(InternalName("com/restphone/jartender/InterfaceI")))
+    val pm = ProvidesMethod(InternalName("com/restphone/jartender/JartenderSample"), 1, JavaIdentifier("aGenericMethod"), MethodDescriptor("(Ljava/lang/Object;)Ljava/lang/String;"), Some(Signature("<T:Ljava/lang/Object;>(TT;)Ljava/lang/String;")), List(InternalName("java/lang/RuntimeException")))
+    val pf = ProvidesField(InternalName("com/restphone/jartender/JartenderSample"), 9, InternalName("aStaticStringFieldWithAnnotation"), TypeDescriptor("Ljava/lang/String;"), null, null)
 
+    val uf = UsesField(InternalName("com/restphone/jartender/JartenderSample"), "aStaticStringFieldWithAnnotation", TypeDescriptor("Ljava/lang/String;"))
+    val um = UsesMethod(InternalName("com/restphone/jartender/JartenderSample"), JavaIdentifier("aGenericMethod"), MethodDescriptor("(Ljava/lang/Object;)Ljava/lang/String;"))
+
+    val result = DependencyAnalyser.buildMatchingDependencies(Set(pc, pm, pf), DependencyClassVisitor.expand_UsesClasses(Set(uf, um)))
+    result should be (Set(uf, um, pc.matchAgainst))
+  }
+}

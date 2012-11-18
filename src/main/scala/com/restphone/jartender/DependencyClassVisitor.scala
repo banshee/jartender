@@ -115,6 +115,7 @@ object DependencyClassVisitor {
   def typeDescriptorToUsesClass(descriptor: TypeDescriptor): Set[UsesClass] = convert_ParseResult_to_UsesClass(JavaSignatureParser.parse(descriptor.s).get)
   def methodDescriptorToUsesClass(descriptor: MethodDescriptor): Set[UsesClass] = convert_ParseResult_to_UsesClass(JavaSignatureParser.parseMethod(descriptor.s).get)
   def convert_identifiers_to_UsesClasses(xs: Iterable[IdentifierFlavor]): Set[UsesClass] = xs map { _.usesClasses } reduce (_ ++ _)
+  def expand_UsesClasses(xs: Set[UsesElement]) = (xs flatMap {_.usesClasses} toSet) ++ xs
 
   private def convert_ParseResult_to_UsesClass(fn: { def typesUsed: Set[JavaName] }) = fn.typesUsed map { _.toJava } map JavaIdentifier map UsesClass
 }
