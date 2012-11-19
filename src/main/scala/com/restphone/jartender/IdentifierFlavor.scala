@@ -21,6 +21,7 @@ case class TypeDescriptor(s: String) extends AnyVal with IdentifierFlavor {
 }
 case class JavaIdentifier(s: String) extends AnyVal with IdentifierFlavor {
   def usesClasses = Set(UsesClass(this))
+  def internalName: InternalName = InternalName(s.replace(".", "/"))
 }
 case class Signature(s: String) extends AnyVal with IdentifierFlavor {
   def usesClasses = Set.empty
@@ -31,4 +32,3 @@ object OptionalSignature {
     case s => some(Signature(s))
   }
 }
-

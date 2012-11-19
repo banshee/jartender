@@ -27,8 +27,10 @@ case class ProvidesClass(
   import Scalaz._
   val javaIdentifier = internalName.javaIdentifier;
   val internalNames = internalName :: interfaces
-  def usesClasses = DependencyClassVisitor.convert_identifiers_to_UsesClasses(internalName :: interfaces)
+  def usesClasses = DependencyClassVisitor.convert_identifiers_to_UsesClasses(internalName :: superName :: interfaces)
+  def parents: List[JavaIdentifier] = superName :: interfaces map {_.javaIdentifier}
   def matchAgainst = UsesClass(javaIdentifier)
+  def classMatches(c: UsesClass) = c.javaIdentifier == javaIdentifier
 }
 object ProvidesClass {
   def createProvidesClassMatcher(fn: ProvidesClass => Boolean) = new Object {
