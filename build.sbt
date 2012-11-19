@@ -4,7 +4,7 @@ name := "AsmSample"
 
 organization := "com.restphone"
 
-version := "0.1-SNAPSHOT"
+version := "0.2-SNAPSHOT"
 
 scalaVersion := "2.10.0-SNAPSHOT"
 
