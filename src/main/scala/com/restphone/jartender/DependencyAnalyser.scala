@@ -35,8 +35,8 @@ object DependencyAnalyser {
     import scala.collection.JavaConverters._
     import scala.actors.Futures._
     for {
-      entry <- j.entries().asScala if (entry.getName().toLowerCase().endsWith(".class"))
-      inputStream <- some(j.getInputStream(entry))
+      entry <- j.entries().asScala if (entry.getName.toLowerCase.endsWith(".class"))
+      inputStream <- Option(j.getInputStream(entry))
       cr = new ClassReader(inputStream)
       result = future {
         buildItems(cr)(DependencyClassVisitor())
