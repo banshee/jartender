@@ -10,16 +10,6 @@ import scala.util.Random.shuffle
 import scalaz._
 import Scalaz._
 
-trait CarbonBasedLifeform {
-  def talk: String
-}
-class Animal extends CarbonBasedLifeform {
-  def talk = "<crickets>"
-}
-class Dog extends Animal {
-  override def talk = "woof"
-}
-
 class ClassRelationshipsTest extends FunSuite with ShouldMatchers {
   val animalClasses = {
     val a1 = DependencyAnalyser.buildItemsFromClassName(JavaIdentifier("com.restphone.jartender.Animal").internalName)
@@ -48,4 +38,15 @@ class ClassRelationshipsTest extends FunSuite with ShouldMatchers {
     pc should be(Some(ProvidesClass(50, 33, InternalName("com/restphone/jartender/Dog"), None, InternalName("com/restphone/jartender/Animal"), List())))
     pc.get.parents should be(List(JavaIdentifier("com.restphone.jartender.Animal")))
   }
+}
+
+// Sample traits and classes for these tests
+trait CarbonBasedLifeform {
+  def talk: String
+}
+class Animal extends CarbonBasedLifeform {
+  def talk = "<crickets>"
+}
+class Dog extends Animal {
+  override def talk = "woof"
 }

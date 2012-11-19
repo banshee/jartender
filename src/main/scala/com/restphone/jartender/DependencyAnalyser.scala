@@ -44,10 +44,18 @@ object DependencyAnalyser {
     } yield result
   }
 
+  /**
+   * Given a set of providers and a set of users, return only the users that are provided
+   * by those providers.
+   * 
+   * For example, in AndroidProguardScala, we get a set of jars that need to be shrunk and some user code
+   * that uses those jars.  We can figure out what those jars provide, and then we match that list against the list
+   * of things that the user code calls.  If that list changes, we need to run proguard again, but if the list
+   * stays the same, we can skip the proguard step.
+   */
   def buildMatchingDependencies(providers: Set[ProvidesElement], users: Set[UsesElement]): Set[UsesElement] = {
     val classesProvidedTransformedToTheirEquivalentUsesElement = providers map { _.matchAgainst }
     val classesUsed = users flatMap {_.usesClasses}
-    println("cx: " + classesProvidedTransformedToTheirEquivalentUsesElement)
     users & classesProvidedTransformedToTheirEquivalentUsesElement
   }
 }

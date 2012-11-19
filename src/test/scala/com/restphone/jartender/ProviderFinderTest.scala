@@ -110,7 +110,7 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
 
   test("can extract classes from ProvidesClass") {
     val pc = ProvidesClass(49, 33, InternalName("com/restphone/jartender/JartenderSample"), null, InternalName("java/lang/Object"), List(InternalName("com/restphone/jartender/InterfaceI")))
-    val expected = Set("com.restphone.jartender.JartenderSample", "com.restphone.jartender.InterfaceI") map JavaIdentifier map UsesClass
+    val expected = Set("com.restphone.jartender.JartenderSample", "com.restphone.jartender.InterfaceI", "java.lang.Object") map JavaIdentifier map UsesClass
     pc.usesClasses should be(expected)
   }
 
