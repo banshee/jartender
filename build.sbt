@@ -1,6 +1,6 @@
 // use sbt deliver-local to create ivy.xml
 
-name := "AsmSample"
+name := "Jartender"
 
 organization := "com.restphone"
 
