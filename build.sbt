@@ -16,6 +16,7 @@ publishMavenStyle := true
 externalResolvers := Seq(
   "RESTPhone Nexus" at "http://git:8081/nexus/content/groups/public",
   Resolver.sonatypeRepo("snapshots")
+  // ,  Resolver.file("local", file("c:\\users\\james\\.ivy2\\cache"))
 )
 
 transitiveClassifiers := Seq("sources")
@@ -32,7 +33,7 @@ libraryDependencies ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "com.restphone" % "scalatest" %  "2.0.M5" % "test",
+  "org.scalatest" % "scalatest_2.10.0-RC3" % "2.0.M5-B1",
   "junit" % "junit" % "4.8.1" % "test",
   "org.scalacheck" % "scalacheck_2.10" % "1.10.1-SNAPSHOT" % "test"
 )

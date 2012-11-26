@@ -15,8 +15,7 @@ class ClassRelationshipsTest extends FunSuite with ShouldMatchers {
     val a1 = DependencyAnalyser.buildItemsFromClassName(JavaIdentifier("com.restphone.jartender.Animal").internalName)
     val a2 = DependencyAnalyser.buildItemsFromClassName(JavaIdentifier("com.restphone.jartender.Dog").internalName)
     val a3 = DependencyAnalyser.buildItemsFromClassName(JavaIdentifier("com.restphone.jartender.CarbonBasedLifeform").internalName)
-    val a4 = a1 |+| a2 |+| a3
-    a4.get
+    a1.elements ++ a2.elements ++ a3.elements
   }
   
   test("can find overriding methods") {

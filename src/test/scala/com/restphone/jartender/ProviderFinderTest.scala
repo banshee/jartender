@@ -27,8 +27,8 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
   def buildSampleTrait = {
     val name = InternalName("com/restphone/jartender/SampleTrait")
     val xs = DependencyAnalyser.buildItemsFromClassName(name)
-    xs should be('defined)
-    listToStreamOfLists(xs.get)
+    xs.elements should be ('nonEmpty)
+    listToStreamOfLists(xs.elements)
   }
 
   test("can analyze a trait (and traits are interfaces)") {
@@ -53,8 +53,8 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
   def buildJartenderBase = {
     val name = InternalName("com/restphone/jartender/JartenderSample")
     val xs = DependencyAnalyser.buildItemsFromClassName(name)
-    xs should be('defined)
-    xs.get
+    xs.elements should be('nonEmpty)
+    xs.elements
   }
 
   def buildJartenderSample = {
@@ -96,9 +96,9 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
   test("can analyze a subclass") {
     val name = InternalName("com/restphone/jartender/JartenderSample$JartenderSampleSubclass")
     val xs = DependencyAnalyser.buildItemsFromClassName(name)
-    xs should be('defined)
+    xs.elements should not be('empty)
 
-    val methodInSubclass = xs.get collectFirst { case ProvidesMethod(_, _, JavaIdentifier("methodInSubclass"), _, _, _) => true }
+    val methodInSubclass = xs.elements collectFirst { case ProvidesMethod(_, _, JavaIdentifier("methodInSubclass"), _, _, _) => true }
     methodInSubclass should be(some(true))
   }
 
