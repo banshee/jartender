@@ -56,6 +56,7 @@ object DependencyAnalyser {
     f match {
       case IsJarfile( x ) => buildItemsFromJarfile( new JarFile( x ) )
       case IsClassfile( x ) => List( buildItemsFromClassFile( x.toString ) )
+      case _ => List.empty
     }
   }
 
