@@ -14,5 +14,4 @@ import scala.util.control.Exception._
 import java.io.IOException
 
 object Utilities {
-  def convertIoExceptionToValidation( filename: String ) = catching( classOf[IOException] ) withApply { x => ( f"IO Exception for file ${filename} : $x" ).failNel }
 }

@@ -12,7 +12,8 @@ import java.io.File
 import java.util.jar.JarEntry
 import scala.util.control.Exception._
 import java.io.IOException
-import com.restphone.jartender.Utilities._
+import com.restphone.jartender.FileFailureValidation._
+
 
 object DependencyAnalyser {
   def buildItems( cr: ClassReader )( pf: DependencyClassVisitor ) = {
@@ -56,10 +57,8 @@ object DependencyAnalyser {
     result map { case ( j, n, r ) => JarfileResult( j, n, r() ) }
   }
 
-//  def convertIoExceptionToValidation( filename: String ) = catching( classOf[IOException] ) withApply { x => ( f"IO Exception for file ${filename} : $x" ).failNel }
-
-  def buildItemsFromFile( f: File ): ValidationNEL[String, List[FileResult]] =
-    convertIoExceptionToValidation( f.getPath ) {
+  def buildItemsFromFile( f: File ): FileFailureValidation[List[FileResult]] =
+    convertIoExceptionToValidation( f ) {
       f match {
         case IsJarfile( x ) => buildItemsFromJarfile( new JarFile( x ) ).success
         case IsClassfile( x ) => List( buildItemsFromClassFile( x.toString ) ).success
