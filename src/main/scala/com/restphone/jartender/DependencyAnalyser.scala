@@ -10,6 +10,9 @@ import scalaz._
 import Scalaz._
 import java.io.File
 import java.util.jar.JarEntry
+import scala.util.control.Exception._
+import java.io.IOException
+import com.restphone.jartender.Utilities._
 
 object DependencyAnalyser {
   def buildItems( cr: ClassReader )( pf: DependencyClassVisitor ) = {
@@ -40,33 +43,38 @@ object DependencyAnalyser {
 
   def buildItemsFromJarfile( j: JarFile ): List[JarfileResult] = {
     import scala.collection.JavaConverters._
-    import scala.actors.Futures._
-    val futures = for {
+    val result = for {
       IsClassfileEntry( entry ) <- j.entries.asScala.toList
       inputStream <- Option( j.getInputStream( entry ) )
       cr = new ClassReader( inputStream )
       result = future {
-        buildItems( cr )( DependencyClassVisitor() )
+        val items = buildItems( cr )( DependencyClassVisitor() )
+        inputStream.close
+        items
       }
-    } yield ( entry.getName, result )
-    futures map { case ( name, result ) => JarfileResult( j, name, result() ) }
+    } yield ( j, entry.getName, result )
+    result map { case ( j, n, r ) => JarfileResult( j, n, r() ) }
   }
 
-  def buildItemsFromFile( f: File ): List[FileResult] = {
-    f match {
-      case IsJarfile( x ) => buildItemsFromJarfile( new JarFile( x ) )
-      case IsClassfile( x ) => List( buildItemsFromClassFile( x.toString ) )
-      case _ => List.empty
+//  def convertIoExceptionToValidation( filename: String ) = catching( classOf[IOException] ) withApply { x => ( f"IO Exception for file ${filename} : $x" ).failNel }
+
+  def buildItemsFromFile( f: File ): ValidationNEL[String, List[FileResult]] =
+    convertIoExceptionToValidation( f.getPath ) {
+      f match {
+        case IsJarfile( x ) => buildItemsFromJarfile( new JarFile( x ) ).success
+        case IsClassfile( x ) => List( buildItemsFromClassFile( x.toString ) ).success
+        case _ => List.empty.success
+      }
     }
-  }
 
-  def unapplyForFileEndsWithSuffix( suffix: String ) = new Object {
-    def unapply( f: File ) = if ( f.getName.endsWith( suffix ) ) some( f ) else none
+  private def suffixMatches[T]( s: String, suffix: String, result: T ) = if ( s.toLowerCase.endsWith( suffix ) ) some( result ) else none
+  private def unapplyForFileEndsWithSuffix( suffix: String ) = new Object {
+    def unapply( f: File ) = suffixMatches( f.getName, suffix, f )
   }
   val IsJarfile = unapplyForFileEndsWithSuffix( ".jar" )
   val IsClassfile = unapplyForFileEndsWithSuffix( ".class" )
   val IsClassfileEntry = new Object {
-    def unapply( j: JarEntry ) = if ( j.getName.endsWith( ".class" ) ) some( j ) else none
+    def unapply( j: JarEntry ) = suffixMatches( j.getName, ".class", j )
   }
 
   /**

@@ -1,12 +1,1 @@
-Run starting. Expected test count is: 2
-ProviderFinderTest:
-List(ProvidesClass(50,1537,com/restphone/asm/FooTrait,null,java/lang/Object,List(),Stack(UsesClass(Lscala/reflect/ScalaSignature;)),Stack(ProvidesMethod[name=com/restphone/asm/FooTrait.fnord.()V]),Stack()))
-- can parse an interface
-here is annoation
-List(ProvidesClass(49,9729,com/restphone/asmSample/SimpleAnnotation,null,java/lang/Object,List(java/lang/annotation/Annotation),Stack(UsesClass(Ljava/lang/annotation/Target;)),Stack(ProvidesMethod[name=com/restphone/asmSample/SimpleAnnotation.b.()Lcom/restphone/asmSample/SecondAnnotation;], ProvidesMethod[name=com/restphone/asmSample/SimpleAnnotation.a.()Ljava/lang/String;]),Stack()))
-- can parse an annotation
-Run completed in 213 milliseconds.
-Total number of tests run: 2
-Suites: completed 1, aborted 0
-Tests: succeeded 2, failed 0, ignored 0, pending 0, canceled 0
 All tests passed.
