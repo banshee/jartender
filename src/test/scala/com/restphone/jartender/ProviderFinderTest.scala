@@ -39,26 +39,22 @@ class ProviderFinderTest extends FunSuite with ShouldMatchers {
     result should be(some(true))
   }
 
+  /**
+   * Given List(1,2,3), returns (1,2,3),(2,3),(3)
+   */
   def listToStreamOfLists[T](lst: List[T]): Stream[List[T]] = lst match {
-    case h :: t => lst #:: listToStreamOfLists(t)
+    case _ :: t => lst #:: listToStreamOfLists(t)
     case Nil => Stream.empty
   }
 
-//  test("bigtest") {
-//    //    val a = DependencyAnalyser.buildItemsFromJarfile(new JarFile("/users/james/.ivy2/cache/org.scalaz/scalaz-core_2.10.0-SNAPSHOT/bundles/scalaz-core_2.10.0-SNAPSHOT-7.0-SNAPSHOT.jar"))
-//    val a = DependencyAnalyser.buildItemsFromJarfile(new JarFile("/tmp/scala-library.jar"))
-//    a.toList
-//  }
-
-  def buildJartenderBase = {
-    val name = InternalName("com/restphone/jartender/JartenderSample")
-    val xs = DependencyAnalyser.buildItemsFromClassName(name)
-    xs.elements should be('nonEmpty)
-    xs.elements
-  }
-
   def buildJartenderSample = {
-    listToStreamOfLists(buildJartenderBase)
+    val buildJartenderBase = {
+      val name = InternalName( "com/restphone/jartender/JartenderSample" )
+      val xs = DependencyAnalyser.buildItemsFromClassName( name )
+      xs.elements should be( 'nonEmpty )
+      xs.elements
+    }
+    listToStreamOfLists( buildJartenderBase )
   }
 
   test("can analyze nested annotations on a field") {
