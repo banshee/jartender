@@ -16,27 +16,18 @@ publishMavenStyle := true
 externalResolvers := Seq(
   "RESTPhone Nexus" at "http://git:8081/nexus/content/groups/public",
   Resolver.sonatypeRepo("snapshots")
-  // ,  Resolver.file("local", file("c:\\users\\james\\.ivy2\\cache"))
 )
 
 transitiveClassifiers := Seq("sources")
 
 libraryDependencies ++= Seq(
   "com.restphone" % "javasignatureparser_2.10" % "0.3-SNAPSHOT",
-  "org.scala-lang" % "scala-actors" % "2.10.0-SNAPSHOT",
-  "org.scalaz" % "scalaz-concurrent_2.10.0-SNAPSHOT" % "7.0-SNAPSHOT",
-  "org.scalaz" % "scalaz-concurrent_2.10.0-SNAPSHOT" % "7.0-SNAPSHOT" % "sources",
-  "com.google.guava" % "guava" % "13.0.1",
-  "com.google.guava" % "guava" % "13.0.1" % "sources",
-  "org.ow2.asm" % "asm" % "4.0",
-  "org.ow2.asm" % "asm" % "4.0" % "sources"
+  "org.scala-lang" % "scala-actors" % "2.10.0-RC3",
+  "org.ow2.asm" % "asm" % "4.1",
+  "org.scalatest" % "scalatest_2.10.0-RC3" % "2.0.M5-B1" % "test"
 )
 
-libraryDependencies ++= Seq(
-  "org.scalatest" % "scalatest_2.10.0-RC3" % "2.0.M5-B1",
-  "junit" % "junit" % "4.8.1" % "test",
-  "org.scalacheck" % "scalacheck_2.10" % "1.10.1-SNAPSHOT" % "test"
-)
+defaultConfigurationMapping in GlobalScope := "compile->default;runtime->default;test->default;provided->default"
 
 publishTo <<= version { (v: String) =>
   val nexus = "http://git:8081/nexus/content/repositories/"
