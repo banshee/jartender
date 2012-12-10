@@ -13,7 +13,10 @@ import java.util.jar.JarEntry
 import scala.util.control.Exception._
 import java.io.IOException
 import com.restphone.jartender.FileFailureValidation._
+import java.io.InputStream
+import scala.collection.JavaConverters._
 
+import scala.language.reflectiveCalls
 
 object DependencyAnalyser {
   def buildItems( cr: ClassReader )( pf: DependencyClassVisitor ) = {
@@ -24,45 +27,52 @@ object DependencyAnalyser {
   sealed abstract class FileResult {
     def elements: List[ClassfileElement]
   }
-  case class JarfileResult( jarfile: JarFile, entry: String, elements: List[ClassfileElement] ) extends FileResult
+  case class JarfileResult( jarfile: JarFile, jarfileElements: List[FileFailureValidation[JarfileElementResult]] ) extends FileResult {
+    val elements = jarfileElements filter { _.isSuccess } flatMap { _.toOption.get.elements }
+  }
+  case class JarfileElementResult( jarfile: JarFile, entry: String, elements: List[ClassfileElement] ) extends FileResult
   case class ClassfileResult( classfile: File, elements: List[ClassfileElement] ) extends FileResult
   case class ClassnameResult( classname: InternalName, elements: List[ClassfileElement] ) extends FileResult
 
-  def buildItemsFromClassName( klass: InternalName, pf: DependencyClassVisitor = DependencyClassVisitor() ): ClassnameResult = {
-    ClassnameResult( klass, buildItems( new ClassReader( klass.s ) )( pf ).toList )
-  }
-
-  def buildItemsFromClassFile( filename: String, pf: DependencyClassVisitor = DependencyClassVisitor() ): ClassfileResult = {
-    val result = for {
-      fis <- Option( new FileInputStream( filename ) )
-      cr <- Option( new ClassReader( fis ) )
-    } yield {
-      buildItems( cr )( pf ).toList
+  def buildItemsFromClassName( klass: InternalName, pf: DependencyClassVisitor = new DependencyClassVisitor() ): FileFailureValidation[ClassnameResult] = {
+    val name = klass.s + ".class"
+    convertIoExceptionToValidation( new File( name ) ) {
+      val stream = Thread.currentThread.getContextClassLoader.getResourceAsStream( name )
+      ClassnameResult( klass, buildItems( new ClassReader( stream ) )( pf ).toList ).success
     }
-    ClassfileResult( new File( filename ), result getOrElse List.empty )
   }
 
-  def buildItemsFromJarfile( j: JarFile ): List[JarfileResult] = {
-    import scala.collection.JavaConverters._
-    val result = for {
-      IsClassfileEntry( entry ) <- j.entries.asScala.toList
-      inputStream <- Option( j.getInputStream( entry ) )
-      cr = new ClassReader( inputStream )
-      result = future {
-        val items = buildItems( cr )( DependencyClassVisitor() )
-        inputStream.close
-        items
-      }
-    } yield ( j, entry.getName, result )
-    result map { case ( j, n, r ) => JarfileResult( j, n, r() ) }
+  def buildItemsFromClassFile( filename: String, pf: DependencyClassVisitor = new DependencyClassVisitor ): FileFailureValidation[ClassfileResult] = {
+    convertIoExceptionToValidation( new File( filename ) ) {
+      val fis = new FileInputStream( filename )
+      ClassfileResult( new File( filename ), buildItems( new ClassReader( fis ) )( pf ).toList ).success
+    }
   }
 
-  def buildItemsFromFile( f: File ): FileFailureValidation[List[FileResult]] =
+  private def buildJarEntry( jarfile: JarFile )( jarEntry: JarEntry ): FileFailureValidation[JarfileElementResult] = {
+    convertIoExceptionToValidation( new File( jarEntry.getName ) ) {
+      val inputStream = jarfile.getInputStream( jarEntry )
+      val cr = new ClassReader( inputStream )
+      val items = buildItems( cr )( new DependencyClassVisitor )
+      inputStream.close
+      JarfileElementResult( jarfile, jarEntry.getName, items ).success
+    }
+  }
+
+  def buildItemsFromJarfile( j: JarFile ): FileFailureValidation[JarfileResult] = {
+    convertIoExceptionToValidation( new File( j.getName ) ) {
+      val jarentries = j.entries.asScala.toList collect { case IsClassfileEntry( entry ) => entry }
+      val jarelements = ( jarentries.par map buildJarEntry( j ) ).seq.toList
+      JarfileResult( j, jarelements ).success
+    }
+  }
+
+  def buildItemsFromFile( f: File ): FileFailureValidation[FileResult] =
     convertIoExceptionToValidation( f ) {
       f match {
-        case IsJarfile( x ) => buildItemsFromJarfile( new JarFile( x ) ).success
-        case IsClassfile( x ) => List( buildItemsFromClassFile( x.toString ) ).success
-        case _ => List.empty.success
+        case IsJarfile( x ) => buildItemsFromJarfile( new JarFile( x ) )
+        case IsClassfile( x ) => buildItemsFromClassFile( x.toString )
+        case _ => FileFailure( f, "buildItemsFromFile" ).failNel
       }
     }
 

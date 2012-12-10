@@ -2,12 +2,10 @@ package com.restphone.jartender
 
 import java.io.FileInputStream
 import java.util.jar.JarFile
-
 import scala.Option.option2Iterable
 import scala.actors.Futures.future
 import scala.collection.JavaConverters.enumerationAsScalaIteratorConverter
 import scala.collection.mutable.Stack
-
 import org.objectweb.asm.AnnotationVisitor
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.FieldVisitor
@@ -15,10 +13,12 @@ import org.objectweb.asm.Handle
 import org.objectweb.asm.Label
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
-
 import scalaz.Scalaz._
+import com.restphone.javasignatureparser.JavaSignatureParser
+import com.restphone.javasignatureparser.JavaName
+import scala.language.reflectiveCalls
 
-case class DependencyClassVisitor extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
+class DependencyClassVisitor extends org.objectweb.asm.ClassVisitor(Opcodes.ASM4) {
   type Elements = List[ClassfileElement]
 
   private var currentClassname: InternalName = InternalName("none")
@@ -115,7 +115,7 @@ object DependencyClassVisitor {
   def typeDescriptorToUsesClass(descriptor: TypeDescriptor): Set[UsesClass] = convert_ParseResult_to_UsesClass(JavaSignatureParser.parse(descriptor.s).get)
   def methodDescriptorToUsesClass(descriptor: MethodDescriptor): Set[UsesClass] = convert_ParseResult_to_UsesClass(JavaSignatureParser.parseMethod(descriptor.s).get)
   def convert_identifiers_to_UsesClasses(xs: Iterable[IdentifierFlavor]): Set[UsesClass] = xs map { _.usesClasses } reduce (_ ++ _)
-  def expand_UsesClasses(xs: Set[UsesElement]) = (xs flatMap {_.usesClasses} toSet) ++ xs
+  def expand_UsesClasses(xs: Set[UsesElement]) = (xs flatMap {_.usesClasses}).toSet ++ xs
 
   private def convert_ParseResult_to_UsesClass(fn: { def typesUsed: Set[JavaName] }) = fn.typesUsed map { _.toJava } map JavaIdentifier map UsesClass
 }

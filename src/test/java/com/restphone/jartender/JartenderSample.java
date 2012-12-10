@@ -6,7 +6,7 @@ import java.io.IOException;
 @AnnotationI(a = "i", b = @AnnotationII)
 public class JartenderSample implements InterfaceI {
 	@AnnotationI(a = "i", b = @AnnotationII)
-	class JartenderSampleSubclass {
+	public class JartenderSampleSubclass {
 		public JartenderSample methodInSubclass() {
 			return null;
 		};

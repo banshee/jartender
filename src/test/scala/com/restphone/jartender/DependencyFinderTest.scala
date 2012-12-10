@@ -27,7 +27,7 @@ class DependencyFinderTest extends FunSuite with ShouldMatchers {
     jarfile should be( 'defined )
     val r1 = DependencyAnalyser.buildItemsFromFile( new File( jarfile.get ) )
     val r2 = r1 match {
-      case Success( ( h: DependencyAnalyser.JarfileResult ) :: t ) => some( h )
+      case Success( h: DependencyAnalyser.JarfileResult ) => some( h )
       case _ => None
     }
     r2 should be( 'defined )
@@ -41,7 +41,7 @@ class DependencyFinderTest extends FunSuite with ShouldMatchers {
   test( "can gracefully fail when given an empty jar file" ) {
     val jarfile = getResource( "jarfiles/empty.jar" )
     jarfile should be( 'defined )
-    val r1 = DependencyAnalyser.buildItemsFromFile( new File(jarfile.get) )
+    val r1 = DependencyAnalyser.buildItemsFromFile( new File( jarfile.get ) )
     r1 should be( 'failure )
   }
 
@@ -49,7 +49,7 @@ class DependencyFinderTest extends FunSuite with ShouldMatchers {
     val extractFilePathExpr = """^file:/(.*)""".r
     for {
       root <- Option( Thread.currentThread.getContextClassLoader.getResource( s ) )
-      extractFilePathExpr( f ) <- Option(root.toString)
+      extractFilePathExpr( f ) <- Option( root.toString )
     } yield f
   }
 }
