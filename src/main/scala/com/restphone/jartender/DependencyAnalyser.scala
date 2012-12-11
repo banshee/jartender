@@ -36,21 +36,21 @@ object DependencyAnalyser {
 
   def buildItemsFromClassName( klass: InternalName, pf: DependencyClassVisitor = new DependencyClassVisitor() ): FileFailureValidation[ClassnameResult] = {
     val name = klass.s + ".class"
-    convertIoExceptionToValidation( new File( name ) ) {
+    convertIoExceptionToValidation( name ) {
       val stream = Thread.currentThread.getContextClassLoader.getResourceAsStream( name )
       ClassnameResult( klass, buildItems( new ClassReader( stream ) )( pf ).toList ).success
     }
   }
 
   def buildItemsFromClassFile( filename: String, pf: DependencyClassVisitor = new DependencyClassVisitor ): FileFailureValidation[ClassfileResult] = {
-    convertIoExceptionToValidation( new File( filename ) ) {
+    convertIoExceptionToValidation( filename ) {
       val fis = new FileInputStream( filename )
       ClassfileResult( new File( filename ), buildItems( new ClassReader( fis ) )( pf ).toList ).success
     }
   }
 
   private def buildJarEntry( jarfile: JarFile )( jarEntry: JarEntry ): FileFailureValidation[JarfileElementResult] = {
-    convertIoExceptionToValidation( new File( jarEntry.getName ) ) {
+    convertIoExceptionToValidation( jarEntry.getName ) {
       val inputStream = jarfile.getInputStream( jarEntry )
       val cr = new ClassReader( inputStream )
       val items = buildItems( cr )( new DependencyClassVisitor )
@@ -60,7 +60,7 @@ object DependencyAnalyser {
   }
 
   def buildItemsFromJarfile( j: JarFile ): FileFailureValidation[JarfileResult] = {
-    convertIoExceptionToValidation( new File( j.getName ) ) {
+    convertIoExceptionToValidation( j.getName ) {
       val jarentries = j.entries.asScala.toList collect { case IsClassfileEntry( entry ) => entry }
       val jarelements = ( jarentries.par map buildJarEntry( j ) ).seq.toList
       JarfileResult( j, jarelements ).success
@@ -68,11 +68,11 @@ object DependencyAnalyser {
   }
 
   def buildItemsFromFile( f: File ): FileFailureValidation[FileResult] =
-    convertIoExceptionToValidation( f ) {
+    convertIoExceptionToValidation( f.getName ) {
       f match {
         case IsJarfile( x ) => buildItemsFromJarfile( new JarFile( x ) )
         case IsClassfile( x ) => buildItemsFromClassFile( x.toString )
-        case _ => FileFailure( f, "buildItemsFromFile" ).failNel
+        case _ => FileFailure( f.getName, "buildItemsFromFile" ).failNel
       }
     }
 

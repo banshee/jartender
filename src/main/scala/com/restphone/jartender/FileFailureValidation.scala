@@ -14,7 +14,11 @@ import scala.util.control.Exception._
 import java.io.IOException
 
 object FileFailureValidation {
-  def convertIoExceptionToValidation( file: File ) = catching( classOf[IOException] ) withApply { x => ( FileFailure( file, x.getLocalizedMessage ) ).failNel }
-  case class FileFailure( file: File, errorMessage: String )
+  def convertIoExceptionToValidation( context: String ) = {
+    val a = catching( classOf[IOException] ) withApply { x => ( FileFailure( context, x.getLocalizedMessage ) ).failNel }
+    val b = catching( classOf[RuntimeException] ) withApply { x => ( FileFailure( context, x.getLocalizedMessage ) ).failNel }
+    a or b
+  }
+  case class FileFailure( context: String, errorMessage: String )
   type FileFailureValidation[T] = ValidationNEL[FileFailure, T]
 }
