@@ -84,12 +84,9 @@ class DependencyClassVisitor extends org.objectweb.asm.ClassVisitor( Opcodes.ASM
       override def visitMethodInsn( opcode: Int, owner: String, name: String, desc: String ) =
         elements.push( UsesMethod( InternalName( owner ), JavaIdentifier( name ), MethodDescriptor( desc ) ) )
 
-      override def visitTryCatchBlock( start: Label, end: Label, handler: Label, exceptionType: String ) = {
-        for {
-          e <- Option( exceptionType )
-        } {
-          elements.push( UsesException( InternalName( e ) ) )
-        }
+      override def visitTryCatchBlock( start: Label, end: Label, handler: Label, catchBlockType: String ) = {
+        // catchBlockType is null for finally blocks
+        if ( catchBlockType != null ) elements.push( UsesException( InternalName( catchBlockType ) ) )
       }
 
       override def visitInvokeDynamicInsn( name: String, desc: String, bsm: Handle, bsmArgs: Object* ) =
@@ -117,7 +114,7 @@ object DependencyClassVisitor {
     ClassProvides( klass.javaIdentifier, provided.toSet )
   }
 
-  def typeDescriptorToUsesClass( descriptor: TypeDescriptor ): Set[UsesClass] = convert_ParseResult_to_UsesClass( JavaSignatureParser.parse( descriptor.s ).get )
+  def typeDescriptorToUsesClass( descriptor: TypeDescriptor ): Set[UsesClass] = {convert_ParseResult_to_UsesClass( JavaSignatureParser.parse( descriptor.s ).get )}
   def methodDescriptorToUsesClass( descriptor: MethodDescriptor ): Set[UsesClass] = convert_ParseResult_to_UsesClass( JavaSignatureParser.parseMethod( descriptor.s ).get )
   def convert_identifiers_to_UsesClasses( xs: Iterable[IdentifierFlavor] ): Set[UsesClass] = xs map { _.usesClasses } reduce ( _ ++ _ )
   def expand_UsesClasses( xs: Set[UsesElement] ) = ( xs flatMap { _.usesClasses } ).toSet ++ xs
