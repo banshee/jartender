@@ -26,30 +26,29 @@ case class ExistingLibrary( p: JartenderCacheParameters, c: CacheEntry ) extends
 case class BuiltLibrary( p: JartenderCacheParameters, c: CacheEntry ) extends CacheResponse
 
 class CacheSystem {
-  def execute( conf: JartenderCacheParameters, shrinker: Shrinker ): FileFailureValidation[CacheResponse] = {
+  def execute( shrinker: Shrinker ): FileFailureValidation[CacheResponse] = {
     // A success on findInCache just means that we didn't throw an
     // exception - it still could be a miss.  Missing is fine; we can continue.
     // An exception isn't fine; we need to stop and report the exception.
-    findInCache( conf ) match {
+    findInCache( shrinker.jartenderCacheParameters ) match {
       case Failure( x ) => Failure( x ) // two different failure types
       case Success( Some( x ) ) => x.success
-      case Success( None ) => createMissingEntry( conf, shrinker )
+      case Success( None ) => createMissingEntry( shrinker )
     }
   }
 
-  def createMissingEntry( conf: JartenderCacheParameters, shrinker: Shrinker ): FileFailureValidation[BuiltLibrary] = {
+  def createMissingEntry( shrinker: Shrinker ): FileFailureValidation[BuiltLibrary] = {
     for {
-      cachedJar <- shrinker.execute(conf)
-      newCacheEntry <- cacheEntryForProcessedLibrary( conf, new File( conf.outputJar ) )
-      installedCacheEntry <- addCacheEntry( newCacheEntry )
-      installedOutputJar <- installOutputJar( cachedJar, conf )
-    } yield BuiltLibrary( conf, newCacheEntry )
+      cachedJar <- shrinker.execute()
+      newCacheEntry <- cacheEntryForProcessedLibrary( shrinker.jartenderCacheParameters, cachedJar )
+      _ <- addCacheEntry( newCacheEntry )
+    } yield BuiltLibrary( shrinker.jartenderCacheParameters, newCacheEntry )
   }
 
-  def installOutputJar( cachedJar: File, conf: JartenderCacheParameters ): FileFailureValidation[Unit] =
+  def installOutputJar( cachedJar: File, destination: File ): FileFailureValidation[Unit] =
     convertIoExceptionToValidation( "installing output jar" ) {
-      if ( !Files.equal( cachedJar, new File( conf.outputJar ) ) ) {
-        Files.copy( cachedJar, new File( conf.outputJar ) )
+      if ( !Files.equal( cachedJar, destination ) ) {
+        Files.copy( cachedJar, destination )
       }
       Validation.success()
     }
