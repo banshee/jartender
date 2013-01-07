@@ -1,52 +1,63 @@
 package com.restphone.jartender
 
-import java.io.FileInputStream
-import java.util.jar.JarFile
-import scala.Option.option2Iterable
-import scala.actors.Futures.future
-import scala.collection.JavaConverters.enumerationAsScalaIteratorConverter
-import org.objectweb.asm.ClassReader
-import scalaz._
-import Scalaz._
 import java.io.File
-import java.util.jar.JarEntry
-import scala.util.control.Exception._
 import java.io.IOException
 
+import scala.util.control.Exception.catching
+import scala.util.control.Exception.throwableSubtypeToCatcher
+
+import scalaz._
+import scalaz.Scalaz._
+import scalaz.ValidationNEL
+import scala.language.implicitConversions
+
 object FileFailureValidation {
-  case class FileFailure( context: String, errorMessage: String )
-  type FileFailureValidation[T] = ValidationNEL[FileFailure, T]
+  trait ExtraFailureInformation
+  implicit def javaFileToExtraFailureInformation( javaFile: File ) = some( new ExtraFailureInformation { val f = javaFile } )
 
-  def convertIoExceptionToValidation( context: String ) = {
-    val a = catching( classOf[IOException] ) withApply { x => ( FileFailure( context, x.getLocalizedMessage ) ).failNel }
-    val b = catching( classOf[RuntimeException] ) withApply { x => ( FileFailure( context, x.getLocalizedMessage ) ).failNel }
-    a or b
+  sealed abstract class AbstractFailure {
+    def context: String
   }
+  case class FailureWithoutException( context: String, msg: Option[String] = none, extra: Option[ExtraFailureInformation] = none ) extends AbstractFailure
+  case class FailureWithException( context: String, originalException: Throwable, extra: Option[ExtraFailureInformation] ) extends AbstractFailure
 
-  def validDirectory( f: File, failureMsg: String ): FileFailureValidation[File] =
-    if ( f.isDirectory ) f.success else FileFailure( failureMsg, f.getPath + " is not a valid directory" ).failureNel
+  type FailureValidation[T] = ValidationNEL[AbstractFailure, T]
 
-  def validatedFile( f: File, failureMsg: String ): FileFailureValidation[File] = for {
-    _ <- validatedIsFile( f, failureMsg )
-    _ <- ( validatedCanReadFile( f, failureMsg ) |@| validatedLengthNonZero( f, failureMsg ) ) { ( _, _ ) => f }
+  def convertExceptionToValidation( exceptions: List[Class[_]] )( context: String, extra: Option[ExtraFailureInformation] ) =
+    catching( exceptions: _* ) withApply { x =>
+      new FailureWithException( context, x, extra ).failureNel
+    }
+
+  def convertExceptions( context: String, extra: Option[ExtraFailureInformation] = none ) =
+    convertExceptionToValidation( stdExceptions )( context, extra )
+
+  implicit val stdExceptions: List[Class[_]] = List( classOf[IOException], classOf[RuntimeException] )
+
+  def validDirectory( f: File, failureMsg: String ): FailureValidation[File] =
+    if ( f.isDirectory ) f.success else FailureWithoutException( failureMsg, some( f.getPath + " is not a valid directory" ), f ).failureNel
+
+  def validatedFile( f: File, failureMsg: String ): FailureValidation[File] = for {
+    newFile <- ( new File( f.getPath ) ).success
+    _ <- validatedIsFile( newFile, failureMsg )
+    _ <- ( validatedCanReadFile( newFile, failureMsg ) |@| validatedLengthNonZero( newFile, failureMsg ) ) { ( _, _ ) => newFile }
   } yield f
 
   def validatedIsFile( f: File, failureContext: String ) = fileValidation( f, f.isFile, failureContext, "is not a file" )
 
   def validatedCanReadFile( f: File, failureContext: String ) = fileValidation( f, f.canRead, failureContext, "is not readable" )
 
-  def validatedLengthNonZero( f: File, failureContext: String ) = fileValidation( f, f.length <= 0, failureContext, "is empty" )
+  def validatedLengthNonZero( f: File, failureContext: String ) = fileValidation( f, f.length > 0, failureContext, "is empty" )
 
-  def validatedTempFile( validationContext: String, prefix: String, suffix: String, directory: File ): FileFailureValidation[File] = {
+  def validatedTempFile( validationContext: String, prefix: String, suffix: String, directory: File ): FailureValidation[File] = {
     for {
       dir <- validDirectory( directory, validationContext )
-      tmpfile <- convertIoExceptionToValidation( validationContext ) { File.createTempFile( prefix, suffix, dir ).success }
+      tmpfile <- convertExceptions( validationContext, none ) { File.createTempFile( prefix, suffix, dir ).success }
     } yield tmpfile
   }
 
-  def fileValidation( f: File, validation: => Boolean, failureContext: String, failureMessage: String = "" ) =
+  def fileValidation( f: File, validation: => Boolean, failureContext: String, failureMessage: String ) =
     validation match {
       case true => f.success
-      case false => FileFailure( failureContext, failureMessage + " " + f.getPath ).failureNel
+      case false => FailureWithoutException( failureContext, some( failureMessage + ": " + f.getPath ), f ).failureNel
     }
 }

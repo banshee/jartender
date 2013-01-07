@@ -2,9 +2,9 @@ package com.restphone.jartender
 
 import java.io.File
 
-import com.restphone.jartender.FileFailureValidation.FileFailureValidation
+import com.restphone.jartender.FileFailureValidation._
 
 trait Shrinker {
   def jartenderCacheParameters: JartenderCacheParameters
-  def execute(): FileFailureValidation[File]
+  def execute(): FailureValidation[File]
 }

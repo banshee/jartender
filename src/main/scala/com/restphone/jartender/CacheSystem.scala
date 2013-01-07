@@ -9,8 +9,7 @@ import scala.Predef.Set.apply
 
 import com.google.common.base.Charsets
 import com.google.common.io.Files
-import com.restphone.jartender.FileFailureValidation.FileFailureValidation
-import com.restphone.jartender.FileFailureValidation.convertIoExceptionToValidation
+import com.restphone.jartender.FileFailureValidation._
 import com.restphone.jartender.RichFile.stringToFile
 import com.restphone.jartender.RichFile.tree
 
@@ -18,6 +17,7 @@ import CacheEntry.apply
 import scalaz._
 import scalaz.Failure.apply
 import scalaz.Scalaz._
+import scala.language.reflectiveCalls
 
 sealed abstract class CacheResponse {
   def c: CacheEntry
@@ -25,8 +25,10 @@ sealed abstract class CacheResponse {
 case class ExistingLibrary( p: JartenderCacheParameters, c: CacheEntry ) extends CacheResponse
 case class BuiltLibrary( p: JartenderCacheParameters, c: CacheEntry ) extends CacheResponse
 
-class CacheSystem {
-  def execute( shrinker: Shrinker ): FileFailureValidation[CacheResponse] = {
+case class UsersAndProviders( providers: Set[ProvidesElement], users: Set[UsesElement], providerFiles: ProviderFilesInformation )
+
+case class CacheSystem( initialCache: Cache = new Cache( Set() ) ) {
+  def execute( shrinker: Shrinker ): FailureValidation[CacheResponse] = {
     // A success on findInCache just means that we didn't throw an
     // exception - it still could be a miss.  Missing is fine; we can continue.
     // An exception isn't fine; we need to stop and report the exception.
@@ -37,7 +39,7 @@ class CacheSystem {
     }
   }
 
-  def createMissingEntry( shrinker: Shrinker ): FileFailureValidation[BuiltLibrary] = {
+  def createMissingEntry( shrinker: Shrinker ): FailureValidation[BuiltLibrary] = {
     for {
       cachedJar <- shrinker.execute()
       newCacheEntry <- cacheEntryForProcessedLibrary( shrinker.jartenderCacheParameters, cachedJar )
@@ -45,22 +47,20 @@ class CacheSystem {
     } yield BuiltLibrary( shrinker.jartenderCacheParameters, newCacheEntry )
   }
 
-  def installOutputJar( cachedJar: File, destination: File ): FileFailureValidation[Unit] =
-    convertIoExceptionToValidation( "installing output jar" ) {
-      if ( !Files.equal( cachedJar, destination ) ) {
+  def installOutputJar( cachedJar: File, destination: File ): FailureValidation[File] =
+    convertExceptions( "installing output jar", destination ) {
+      if ( !destination.exists || !Files.equal( cachedJar, destination ) ) {
         Files.copy( cachedJar, destination )
       }
-      Validation.success()
+      destination.success
     }
 
-  def findInCache( p: JartenderCacheParameters ): FileFailureValidation[Option[ExistingLibrary]] =
+  def findInCache( p: JartenderCacheParameters ): FailureValidation[Option[ExistingLibrary]] =
     buildUsersAndProviders( p ) map { x =>
       val relevantDependencies = DependencyAnalyser.buildMatchingDependencies( x.providers, x.users )
       val cacheEntry = currentCache.findInCache( relevantDependencies, x.providerFiles )
       cacheEntry map { ExistingLibrary( p, _ ) }
     }
-
-  case class UsersAndProviders( providers: Set[ProvidesElement], users: Set[UsesElement], providerFiles: ProviderFilesInformation )
 
   def buildUsersAndProviders( p: JartenderCacheParameters ) = {
     ( elementsFromClassfiles( p )
@@ -76,12 +76,12 @@ class CacheSystem {
 
   def providerFiles( p: JartenderCacheParameters ) = ProviderFilesInformation.createFromFiles( p.inputJars map stringToFile )
 
-  def addCacheEntry( c: CacheEntry ): FileFailureValidation[Cache] = {
+  def addCacheEntry( c: CacheEntry ): FailureValidation[Cache] = {
     currentCache = new Cache( currentCache.entries + c )
     currentCache.success
   }
 
-  def cacheEntryForProcessedLibrary( p: JartenderCacheParameters, f: File ): FileFailureValidation[CacheEntry] =
+  def cacheEntryForProcessedLibrary( p: JartenderCacheParameters, f: File ): FailureValidation[CacheEntry] =
     buildUsersAndProviders( p ) map { x => CacheEntry( usesItems = x.users, providerFileInformation = x.providerFiles, jarfilepath = f.getPath ) }
 
   def elementsFromClassfiles( p: JartenderCacheParameters ) = elementsFromFiles( jvmFilesInDirectories( p.classFiles ) )
@@ -93,14 +93,14 @@ class CacheSystem {
     IsJvmFile( cf ) <- tree( classfiledir )
   } yield cf
 
-  def elementsFromFiles( fs: Traversable[File] ): FileFailureValidation[List[ClassfileElement]] =
-    fs.toList map elementsFromFile suml
+  def elementsFromFiles( fs: Traversable[File] ): FailureValidation[List[ClassfileElement]] =
+    ( fs.toList map elementsFromFile ).suml
 
-  def elementsFromFile( f: File ): FileFailureValidation[List[ClassfileElement]] = {
+  def elementsFromFile( f: File ): FailureValidation[List[ClassfileElement]] = {
     DependencyAnalyser.buildItemsFromFile( f ) map { _.elements }
   }
 
-  def classesDefined( fs: Traversable[File] ): FileFailureValidation[List[JavaIdentifier]] =
+  def classesDefined( fs: Traversable[File] ): FailureValidation[List[JavaIdentifier]] =
     elementsFromFiles( fs ) map { _ collect { case ProvidesClass( _, _, internalName, _, _, _ ) => internalName.javaIdentifier } }
 
   private def fileContentsOrExceptionMessage( f: File ) = {
@@ -111,12 +111,12 @@ class CacheSystem {
     }
   }
 
-  val IsJvmFile = new Object {
+   @transient private[jartender] lazy val IsJvmFile = new Object {
     val jvmExtensions = Set( "class", "jar" )
     def unapply( f: File ) = condOpt( f.getName.split( '.' ).reverse.toList ) {
       case h :: t if jvmExtensions.contains( h.toLowerCase ) && f.isFile => f
     }
   }
 
-  private var currentCache: Cache = new Cache( Set() )
+  var currentCache: Cache = new Cache( Set() )
 }

@@ -1,27 +1,18 @@
 package com.restphone.jartender
 
-import java.io.FileInputStream
-import java.util.jar.JarFile
-import scala.Option.option2Iterable
-import scala.actors.Futures.future
-import scala.collection.JavaConverters.enumerationAsScalaIteratorConverter
-import org.objectweb.asm.ClassReader
-import scalaz._
-import Scalaz._
-import java.io.File
-import java.util.jar.JarEntry
-import scala.util.control.Exception._
-import java.io.IOException
-
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
-import java.io.ObjectOutputStream
-import scala.annotation.tailrec
-import scala.util.control.Exception._
-import java.io.ByteArrayInputStream
 import java.io.ObjectInputStream
-import scalaz._
-import Scalaz._
+import java.io.ObjectOutputStream
+
+import scala.Array.canBuildFrom
+import scala.Option.option2Iterable
+import scala.annotation.tailrec
+import scala.collection.immutable.Stream.consWrapper
+import scala.util.control.Exception.catching
+
+import scalaz.Scalaz._
 
 object NotNull {
   val catchNull = catching( classOf[NullPointerException] )
@@ -75,7 +66,7 @@ object RichFile {
 }
 
 object SerializableUtilities {
-  def converToByteArray( x: Serializable ) = {
+  def convertToByteArray( x: Serializable ) = {
     val out = new ByteArrayOutputStream
     val objout = new ObjectOutputStream( out )
     objout.writeObject( x )

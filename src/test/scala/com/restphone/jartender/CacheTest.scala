@@ -1,19 +1,23 @@
 package com.restphone.jartender
 
 import java.io.File
+
+import scala.Predef.Set.apply
 import scala.collection.immutable.List.apply
+
 import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
+
 import com.google.common.base.Charsets
 import com.google.common.io.Files
-import com.restphone.jartender.Cache
-import com.restphone.jartender.Cache.apply
-import com.restphone.jartender.CacheEntry.apply
-import com.restphone.jartender.JavaIdentifier.apply
-import com.restphone.jartender.ProviderFilesInformation
-import com.restphone.jartender.SerializableUtilities
-import com.restphone.jartender.UsesClass.apply
+
+import Cache.apply
+import CacheEntry.apply
+import JavaIdentifier.apply
+import UsesClass.apply
 import scalaz.Scalaz._
+
+import com.restphone.scalatestutilities.ScalaTestMatchers._
 
 class CacheTest extends FunSuite with ShouldMatchers {
   test( "can generate cache file" ) {
@@ -35,14 +39,14 @@ class CacheTest extends FunSuite with ShouldMatchers {
 
     val cache = Cache( Set( cachent ) )
 
-    val bytesForCache = SerializableUtilities.converToByteArray( cache )
+    val bytesForCache = SerializableUtilities.convertToByteArray( cache )
 
     Files.write( bytesForCache, cachefile )
 
     val bytesFromFile = Files.toByteArray( cachefile )
 
     val tst: Option[Cache] = SerializableUtilities.byteArrayToObject( bytesFromFile )
-    tst should be ('defined)
+    tst.get should beOfType[Cache]
   }
 
   test( "can find an item in the cache" ) {
@@ -68,7 +72,7 @@ class CacheTest extends FunSuite with ShouldMatchers {
 
     val cache = Cache( Set( cacheEntry ) )
 
-    val bytesForCache = SerializableUtilities.converToByteArray( cache )
+    val bytesForCache = SerializableUtilities.convertToByteArray( cache )
 
     Files.write( bytesForCache, cachefile )
 
