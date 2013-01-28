@@ -24,8 +24,8 @@ object FileFailureValidation {
   type FailureValidation[T] = ValidationNEL[AbstractFailure, T]
 
   def convertExceptionToValidation( exceptions: List[Class[_]] )( context: String, extra: Option[ExtraFailureInformation] ) =
-    catching( exceptions: _* ) withApply { x =>
-      new FailureWithException( context, x, extra ).failureNel
+    catching( exceptions: _* ) withApply { exception =>
+      new FailureWithException( context, exception, extra ).failureNel
     }
 
   def convertExceptions( context: String, extra: Option[ExtraFailureInformation] = none ) =

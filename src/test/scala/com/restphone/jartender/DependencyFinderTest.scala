@@ -46,7 +46,7 @@ class DependencyFinderTest extends FunSuite with ShouldMatchers {
   }
 
   def getResource( s: String ) = {
-    val extractFilePathExpr = """^file:/(.*)""".r
+    val extractFilePathExpr = """^file:/*(/.*)""".r
     for {
       root <- Option( Thread.currentThread.getContextClassLoader.getResource( s ) )
       extractFilePathExpr( f ) <- Option( root.toString )
