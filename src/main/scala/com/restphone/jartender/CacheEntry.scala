@@ -23,6 +23,7 @@ case class CacheEntry(
   usesItems: Set[UsesElement],
   providerFileInformation: ProviderFilesInformation,
   jarfilepath: String ) {
+  
   def thisCacheEntryProvides( items: Set[UsesElement], providers: ProviderFilesInformation ) =
     items.subsetOf( usesItems ) && ( providers == providerFileInformation )
 }
