@@ -6,7 +6,7 @@ organization := "com.restphone"
 
 version := "0.4-SNAPSHOT"
 
-scalaVersion := "2.10.0"
+scalaVersion := "2.10.1-RC2"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 

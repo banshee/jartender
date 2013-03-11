@@ -92,9 +92,6 @@ class DependencyClassVisitor extends org.objectweb.asm.ClassVisitor( Opcodes.ASM
         // catchBlockType is null for finally blocks
         if ( catchBlockType != null ) elements.push( UsesException( InternalName( catchBlockType ) ) )
       }
-
-      override def visitInvokeDynamicInsn( name : String, desc : String, bsm : Handle, bsmArgs : Object* ) =
-        null
     }
   }
 
