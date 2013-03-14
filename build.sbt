@@ -4,9 +4,9 @@ name := "Jartender"
 
 organization := "com.restphone"
 
-version := "0.4-SNAPSHOT"
+version := "0.5"
 
-scalaVersion := "2.10.1-RC2"
+scalaVersion := "2.10.1"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 

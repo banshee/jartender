@@ -33,7 +33,8 @@ case class CacheSystem( initialCache: Cache = new Cache( Set() ) ) {
     // exception - it still could be a miss.  Missing is fine; we can continue.
     // An exception isn't fine; we need to stop and report the exception.
     findInCache( shrinker.jartenderCacheParameters ) match {
-      case Failure( x ) => Failure( x ) // two different failure types
+      // converting to a different kind of failure
+      case scalaz.Failure( x ) => Failure[NonEmptyList[FileFailureValidation.AbstractFailure], CacheResponse]( x ) 
       case Success( Some( x ) ) => x.success
       case Success( None ) => createMissingEntry( shrinker )
     }
