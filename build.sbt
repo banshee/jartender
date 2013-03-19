@@ -13,7 +13,7 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 publishMavenStyle := true
 
 libraryDependencies ++= Seq(
-  "com.restphone" %% "javasignatureparser" % "0.4-SNAPSHOT",
+  "com.restphone" %% "javasignatureparser" % "0.4",
   "org.scalaz" %% "scalaz-core" % "7.0.0-M7",
   "org.scala-lang" % "scala-actors" % "2.10.0",
   "org.ow2.asm" % "asm" % "4.1",
