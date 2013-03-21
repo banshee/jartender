@@ -12,18 +12,10 @@ scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 
 publishMavenStyle := true
 
-publishTo <<= version { (v: String) =>
-  val nexus = "https://oss.sonatype.org/"
-  if (v.trim.endsWith("SNAPSHOT"))
-    Some("snapshots" at nexus + "content/repositories/snapshots")
-  else
-    Some("releases"  at nexus + "service/local/staging/deploy/maven2")
-}
-
 publishArtifact in Test := false
 
 libraryDependencies ++= Seq(
-  "com.restphone" %% "javasignatureparser" % "0.4",
+  "com.restphone" %% "javasignatureparser" % "0.5",
   "org.scalaz" %% "scalaz-core" % "7.0.0-M7",
   "org.scala-lang" % "scala-actors" % "2.10.0",
   "org.ow2.asm" % "asm" % "4.1",
